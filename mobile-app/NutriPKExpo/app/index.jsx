@@ -1,15 +1,5 @@
-import { useEffect } from "react";
-import { useRouter } from "expo-router";
+import SplashScreen from "./SplashScreen";
 
-export default function IndexRedirect() {
-  const router = useRouter();
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (typeof router.replace === "function") {
-        router.replace("/SplashScreen");
-      }
-    }, 50); // 50ms delay to let the layout mount
-    return () => clearTimeout(timeout);
-  }, [router]);
-  return null;
+export default function Index() {
+  return <SplashScreen />;
 }

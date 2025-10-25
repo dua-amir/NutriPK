@@ -6,7 +6,7 @@ export default function SplashScreen() {
   const router = useRouter();
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace("./Login");
+      router.replace("./Onboarding1");
     }, 3000); // 3 seconds
     return () => clearTimeout(timer);
   }, [router]);

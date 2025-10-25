@@ -6,39 +6,48 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
+  ScrollView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
-export default function Login() {
+export default function Signup() {
   const router = useRouter();
   const [username, setUsername] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
-  const [rememberMe, setRememberMe] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
-  const handleLogin = async () => {
-    setLoading(true);
+  const handleSignup = async () => {
     setError("");
+    if (!username || !email || !password || !confirmPassword) {
+      setError("Please fill all fields.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setLoading(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/login", {
+      const response = await fetch("http://127.0.0.1:8000/api/user/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, email, password }),
       });
       if (!response.ok) {
         const data = await response.json();
-        setError(data.detail || "Login failed");
+        setError(data.detail || "Signup failed");
         setLoading(false);
         return;
       }
-      // Success: get user profile
-      const user = await response.json();
-      // You can store user info or JWT here if needed
       setLoading(false);
       router.replace("/(tabs)");
     } catch (err) {
@@ -48,7 +57,10 @@ export default function Login() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.logoContainer}>
         <Image
           source={require("../assets/images/logo.jpg")}
@@ -58,7 +70,7 @@ export default function Login() {
         <Text style={styles.title}>NutriPK</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Sign in</Text>
+        <Text style={styles.cardTitle}>Sign up</Text>
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -67,6 +79,15 @@ export default function Login() {
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#A0A0A0"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
           <View style={styles.passwordRow}>
             <TextInput
@@ -89,34 +110,38 @@ export default function Login() {
               />
             </TouchableOpacity>
           </View>
-          <View style={styles.rowBetween}>
+          <View style={styles.passwordRow}>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="Confirm Password"
+              placeholderTextColor="#A0A0A0"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+            />
             <TouchableOpacity
-              style={styles.rememberMeRow}
-              onPress={() => setRememberMe((prev) => !prev)}
+              style={styles.eyeButton}
+              onPress={() => setShowConfirmPassword((prev) => !prev)}
               activeOpacity={0.7}
             >
-              <View style={styles.checkbox}>
-                {rememberMe && (
-                  <Ionicons name="checkmark" size={16} color="#2E7D32" />
-                )}
-              </View>
-              <Text style={styles.rememberMeText}>Remember me</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/forgot-password")}>
-              <Text style={styles.forgotText}>Forgot password?</Text>
+              <Ionicons
+                name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                size={22}
+                color="#4E944F"
+              />
             </TouchableOpacity>
           </View>
           {error ? (
             <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
           ) : null}
           <TouchableOpacity
-            style={styles.loginButton}
+            style={styles.signupButton}
             activeOpacity={0.85}
-            onPress={handleLogin}
+            onPress={handleSignup}
             disabled={loading}
           >
-            <Text style={styles.loginButtonText}>
-              {loading ? "Logging in..." : "Login"}
+            <Text style={styles.signupButtonText}>
+              {loading ? "Signing up..." : "Sign Up"}
             </Text>
           </TouchableOpacity>
           <Text style={styles.orText}>or</Text>
@@ -131,21 +156,21 @@ export default function Login() {
             />
             <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
-          <View style={styles.signupRow}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push("/SignUp")}>
-              <Text style={styles.signupLink}>Create account</Text>
+          <View style={styles.loginRow}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => router.replace("/Login")}>
+              <Text style={styles.loginLink}>Login</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#E0E0D5",
@@ -194,6 +219,9 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     letterSpacing: 0.5,
   },
+  subtitle: {
+    display: "none",
+  },
   inputContainer: {
     width: "100%",
     alignItems: "center",
@@ -221,39 +249,7 @@ const styles = StyleSheet.create({
     marginLeft: -36,
     zIndex: 1,
   },
-  rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-    marginBottom: 8,
-  },
-  rememberMeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: "#0e4f11ff",
-    marginRight: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E0E0D5",
-  },
-  rememberMeText: {
-    color: "#4E944F",
-    fontSize: 14,
-  },
-  forgotText: {
-    color: "#4E944F",
-    fontSize: 14,
-    fontWeight: "500",
-    textDecorationLine: "underline",
-  },
-  loginButton: {
+  signupButton: {
     width: "100%",
     backgroundColor: "#2E7D32",
     borderRadius: 8,
@@ -262,14 +258,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 2,
   },
-  loginButtonText: {
+  signupButtonText: {
     color: "#fff",
     fontSize: 17,
     fontWeight: "bold",
     letterSpacing: 0.2,
   },
   orText: {
-    color: "#4E944F",
+    color: "#0e4f11ff",
     fontSize: 15,
     marginVertical: 10,
     fontWeight: "500",
@@ -303,17 +299,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     letterSpacing: 0.2,
   },
-  signupRow: {
+  loginRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 8,
   },
-  signupText: {
-    color: "#4E944F",
+  loginText: {
+    color: "#2E7D32",
     fontSize: 15,
   },
-  signupLink: {
+  loginLink: {
     color: "#2E7D32",
     fontWeight: "bold",
     fontSize: 15,
