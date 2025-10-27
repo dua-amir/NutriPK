@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
 export default function Home() {
@@ -7,6 +7,7 @@ export default function Home() {
   const [predictions, setPredictions] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showNutrients, setShowNutrients] = useState(false);
 
   const pickImage = async () => {
     try {
@@ -108,6 +109,42 @@ export default function Home() {
     return (confidence * 100).toFixed(1) + "%";
   };
 
+  // Return only the main nutrient fields (Calories, Carbohydrates, Fats, Protein)
+  const getDisplayedNutrients = (nutrients) => {
+    if (!nutrients) return [];
+    const remainingKeys = Object.keys(nutrients || {});
+    const lowerMap = {};
+    remainingKeys.forEach(k => { lowerMap[k.toLowerCase()] = k; });
+
+    const order = [
+      { label: 'Calories', subs: ['calor'] },
+      { label: 'Carbohydrates', subs: ['carbo', 'carb'] },
+      { label: 'Fats', subs: ['fat'] },
+      { label: 'Protein', subs: ['protein'] },
+    ];
+
+    const out = [];
+    const taken = new Set();
+    for (const item of order) {
+      const { label, subs } = item;
+      let foundKey = null;
+      // find first matching key (case-insensitive) that isn't already taken
+      for (const origKey of Object.keys(nutrients)) {
+        const lk = origKey.toLowerCase();
+        if (taken.has(origKey)) continue;
+        if (subs.some(s => lk.includes(s))) {
+          foundKey = origKey;
+          break;
+        }
+      }
+      if (foundKey) {
+        taken.add(foundKey);
+        out.push({ label, value: nutrients[foundKey] });
+      }
+    }
+    return out;
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Food Recognition</Text>
@@ -182,8 +219,43 @@ export default function Home() {
               </Text>
             </View>
           ))}
+          {predictions.nutrients && (
+            <TouchableOpacity
+              style={[styles.predictButton, {marginTop:12}]}
+              onPress={() => setShowNutrients(true)}
+            >
+              <Text style={styles.predictButtonText}>📋 View Nutrients</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
+
+      {/* Nutrients modal */}
+      <Modal
+        visible={showNutrients}
+        animationType="slide"
+        onRequestClose={() => setShowNutrients(false)}
+      >
+        <View style={[styles.container, {paddingTop: 60}]}> 
+          <Text style={styles.title}>Nutrients</Text>
+          <ScrollView style={{marginTop:12}}>
+            {predictions && predictions.nutrients ? (
+              getDisplayedNutrients(predictions.nutrients).map((item, i) => (
+                <View key={i} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:8,borderBottomWidth:1,borderBottomColor:'#eee'}}>
+                  <Text style={{fontSize:16,color:'#333'}}>{item.label}</Text>
+                  <Text style={{fontSize:16,color:'#0D2B3A',fontWeight:'600'}}>{item.value === null ? '—' : String(item.value)}</Text>
+                </View>
+              ))
+            ) : (
+              <Text>No nutrient data available.</Text>
+            )}
+          </ScrollView>
+
+          <TouchableOpacity style={[styles.predictButton, {marginTop:16}]} onPress={() => setShowNutrients(false)}>
+            <Text style={styles.predictButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }

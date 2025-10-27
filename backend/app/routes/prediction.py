@@ -5,6 +5,12 @@ import os
 from tempfile import NamedTemporaryFile
 from ..models.prediction import DishPredictor
 
+# Try to import nutrients helper (optional). If not present or fails, we'll skip enrichment.
+try:
+    from ..models.nutrients import get_nutrients_for
+except Exception:
+    get_nutrients_for = None
+
 router = APIRouter()
 predictor = None
 
@@ -55,11 +61,21 @@ async def predict_dish(file: UploadFile = File(..., description="Image file to p
         print("Making prediction...")
         # Make prediction
         result = predictor.predict(temp_path)
-        
+
+        # Enrich with nutrients if helper available
+        try:
+            if get_nutrients_for is not None and 'dish' in result:
+                nutrients = get_nutrients_for(result.get('dish'))
+                if nutrients:
+                    result['nutrients'] = nutrients
+        except Exception as exc:
+            # Don't fail prediction if nutrient enrichment fails
+            print(f"Warning: failed to attach nutrients: {exc}")
+
         # Clean up the temporary file
         print("Cleaning up temporary file...")
         os.unlink(temp_path)
-        
+
         return result
     except Exception as e:
         print(f"Error during prediction: {str(e)}")
