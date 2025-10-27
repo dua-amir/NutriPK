@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import user
+from app.routes import user, prediction
 
 app = FastAPI()
 
@@ -13,14 +13,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
 app.include_router(user.router, prefix="/api/user", tags=["user"])
-
-@app.post("/api/predict-dish")
-async def predict_dish(file: bytes = None):
-    # Dummy model logic: always returns "biryani" for demo
-    # Replace with your real ML model code
-    dish = "biryani"
-    return {"dish": dish}
+app.include_router(prediction.router, prefix="/api/dish", tags=["prediction"])
 
 @app.get("/")
 def read_root():
