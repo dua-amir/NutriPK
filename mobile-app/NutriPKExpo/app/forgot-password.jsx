@@ -14,6 +14,30 @@ export default function ForgotPassword() {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  const handleReset = async () => {
+    setError("");
+    if (!email) {
+      setError("Please enter your email.");
+      return;
+    }
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/user/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.detail || "Failed to send reset link.");
+      } else {
+        setSubmitted(true);
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
+  };
 
   return (
     <ScrollView
@@ -32,14 +56,12 @@ export default function ForgotPassword() {
         <Text style={styles.cardTitle}>Forgot Password</Text>
         {submitted ? (
           <Text style={styles.successText}>
-            If an account with that email exists, a password reset link has been
-            sent.
+            If an account with that email exists, a password reset link has been sent.
           </Text>
         ) : (
           <>
             <Text style={styles.infoText}>
-              Enter your email address and we'll send you a link to reset your
-              password.
+              Enter your email address and we'll send you a link to reset your password.
             </Text>
             <TextInput
               style={styles.input}
@@ -50,10 +72,13 @@ export default function ForgotPassword() {
               autoCapitalize="none"
               keyboardType="email-address"
             />
+            {error ? (
+              <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
+            ) : null}
             <TouchableOpacity
               style={styles.resetButton}
               activeOpacity={0.85}
-              onPress={() => setSubmitted(true)}
+              onPress={handleReset}
             >
               <Text style={styles.resetButtonText}>Send Reset Link</Text>
             </TouchableOpacity>

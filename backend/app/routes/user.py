@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Body
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from app.models.user import UserCreate, UserLogin, UserProfile, UserUpdate, PasswordResetRequest
+from app.utils.email_utils import send_reset_email
 from fastapi import UploadFile, File, Form
 import os
 
@@ -163,10 +164,36 @@ async def update_profile(
     return UserProfile(**user)
 
 
+
 @router.post("/forgot-password")
 async def forgot_password(req: PasswordResetRequest):
     user = await user_collection.find_one({"email": req.email})
     if not user:
         raise HTTPException(status_code=404, detail="Email not found")
-    # In real app, send email with reset link
-    return {"msg": "Password reset link sent (mock)"}
+    # Generate password reset token (JWT, expires in 30 min)
+    token = create_access_token({"sub": user["username"]}, expires_delta=timedelta(minutes=30))
+    reset_link = f"http://localhost:3000/reset-password?token={token}"  # Change to your frontend URL
+    sent = send_reset_email(req.email, reset_link)
+    if not sent:
+        raise HTTPException(status_code=500, detail="Failed to send email. Please try again later.")
+    return {"msg": "Password reset link sent to your email."}
+
+# Password reset endpoint
+from app.models.user import PasswordReset
+
+@router.post("/reset-password")
+async def reset_password(data: PasswordReset):
+    # Validate token and get username
+    try:
+        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if not username:
+            raise HTTPException(status_code=400, detail="Invalid token.")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired token.")
+    user = await get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    hashed_password = get_password_hash(data.new_password)
+    await user_collection.update_one({"username": username}, {"$set": {"password": hashed_password}})
+    return {"msg": "Password has been reset successfully."}
