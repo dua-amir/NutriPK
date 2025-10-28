@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -11,38 +12,111 @@ import { useRouter } from "expo-router";
 
 export default function Profile() {
   const router = useRouter();
-  // Dummy user data for now
-  const user = {
-    name: "Dua Amir",
-    email: "dua.amir@email.com",
-    avatar: require("../assets/images/logo.jpg"),
-    joined: "Jan 2025",
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const username = "dua"; // TODO: Replace with actual logged-in username (from context or storage)
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const token = await AsyncStorage.getItem('jwtToken');
+        console.log('JWT Token:', token);
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/user/profile/${username}`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: token ? `Bearer ${token}` : "",
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log('Profile response status:', response.status);
+        if (!response.ok) {
+          const data = await response.json();
+          setError(data.detail || "Failed to fetch profile");
+          setLoading(false);
+          return;
+        }
+        const data = await response.json();
+        setUser(data);
+      } catch (err) {
+        setError("Network error. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // Calculate BMI
+  const getBMI = (weight, height) => {
+    if (!weight || !height) return "-";
+    // Height in cm, convert to meters
+    const h = Number(height) / 100;
+    const w = Number(weight);
+    if (!h || !w) return "-";
+    return (w / (h * h)).toFixed(1);
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.card}>
-        <Image source={user.avatar} style={styles.avatar} />
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.email}>{user.email}</Text>
-        <Text style={styles.joined}>Joined: {user.joined}</Text>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => router.push("/edit-profile")}
-        >
-          <Text style={styles.editButtonText}>Edit Profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={() => router.replace("/Login")}
-        >
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
+        {loading ? (
+          <Text>Loading...</Text>
+        ) : error ? (
+          <Text style={{ color: "red" }}>{error}</Text>
+        ) : user ? (
+          <>
+            <Image
+              source={require("../assets/images/logo.jpg")}
+              style={styles.avatar}
+            />
+            <Text style={styles.name}>{user.username}</Text>
+            <Text style={styles.email}>{user.email}</Text>
+            <Text style={styles.info}>Age: <Text style={styles.infoValue}>{user.age || "-"}</Text></Text>
+            <Text style={styles.info}>Height: <Text style={styles.infoValue}>{user.height || "-"} cm</Text></Text>
+            <Text style={styles.info}>Weight: <Text style={styles.infoValue}>{user.weight || "-"} kg</Text></Text>
+            <Text style={styles.info}>BMI: <Text style={styles.infoValue}>{getBMI(user.weight, user.height)}</Text></Text>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={() => router.replace("/Login")}
+            >
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={async () => {
+                // Call backend to reset password (mock: send email)
+                setError("");
+                try {
+                  const response = await fetch("http://127.0.0.1:8000/api/user/forgot-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: user.email }),
+                  });
+                  const data = await response.json();
+                  if (!response.ok) {
+                    setError(data.detail || "Failed to send reset link");
+                  } else {
+                    setError(data.msg || "Password reset link sent!");
+                  }
+                } catch (err) {
+                  setError("Network error. Please try again.");
+                }
+              }}
+            >
+              <Text style={styles.resetButtonText}>Reset Password</Text>
+            </TouchableOpacity>
+          </>
+        ) : null}
       </View>
     </ScrollView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,

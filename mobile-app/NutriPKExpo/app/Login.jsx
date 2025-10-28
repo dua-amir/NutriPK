@@ -1,4 +1,5 @@
 import React from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -30,17 +31,19 @@ export default function Login() {
         },
         body: JSON.stringify({ username, password }),
       });
+      const data = await response.json();
+      console.log('Login API response:', data);
       if (!response.ok) {
-        const data = await response.json();
         setError(data.detail || "Login failed");
         setLoading(false);
         return;
       }
-      // Success: get user profile
-      const user = await response.json();
-      // You can store user info or JWT here if needed
+      // Store JWT token from access_token
+      if (data.access_token) {
+        await AsyncStorage.setItem('jwtToken', data.access_token);
+      }
       setLoading(false);
-      router.replace("/(tabs)");
+      router.replace("/Home");
     } catch (err) {
       setError("Network error. Please try again.");
       setLoading(false);
