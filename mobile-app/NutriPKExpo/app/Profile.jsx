@@ -15,22 +15,27 @@ export default function Profile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const username = "dua"; // TODO: Replace with actual logged-in username (from context or storage)
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
       setError("");
       try {
+        // Get username from AsyncStorage
+        const storedUsername = await AsyncStorage.getItem('username');
+        if (!storedUsername) {
+          setError("No username found. Please login again.");
+          setLoading(false);
+          return;
+        }
+        setUsername(storedUsername);
         const token = await AsyncStorage.getItem('jwtToken');
         console.log('JWT Token:', token);
-        const response = await fetch(
-          `http://127.0.0.1:8000/api/user/profile/${username}`,
+        const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${storedUsername}`,
           {
-            method: 'GET',
             headers: {
-              Authorization: token ? `Bearer ${token}` : "",
-              "Content-Type": "application/json",
+              'Authorization': token ? `Bearer ${token}` : '',
             },
           }
         );

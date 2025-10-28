@@ -59,7 +59,7 @@ export default function Signup() {
         return;
       }
       setLoading(false);
-      router.replace("/(tabs)");
+  router.replace("/Home");
     } catch (err) {
       setError("Network error. Please try again.");
       setLoading(false);

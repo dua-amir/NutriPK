@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useRouter } from "expo-router";
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
 export default function Home() {
+  const router = useRouter();
   const [image, setImage] = useState(null);
   const [predictions, setPredictions] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,7 @@ export default function Home() {
     }
   };
 
-    const uploadAndPredict = async () => {
+  const uploadAndPredict = async () => {
     if (!image) return;
     setLoading(true);
     setError(null);
@@ -148,7 +150,6 @@ export default function Home() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Food Recognition</Text>
-      
       <View style={styles.buttonRow}>
         <TouchableOpacity 
           style={[styles.button, styles.cameraButton]} 
@@ -167,7 +168,6 @@ export default function Home() {
       {image && (
         <View style={styles.previewContainer}>
           <Image source={{ uri: image }} style={styles.preview} />
-          
           <TouchableOpacity
             style={[
               styles.predictButton,
@@ -256,6 +256,22 @@ export default function Home() {
           </TouchableOpacity>
         </View>
       </Modal>
+
+      {/* Profile Button */}
+      <TouchableOpacity
+        style={{
+          marginTop: 24,
+          backgroundColor: "#4E944F",
+          paddingVertical: 14,
+          paddingHorizontal: 36,
+          borderRadius: 12,
+          alignItems: "center",
+          elevation: 2,
+        }}
+        onPress={() => router.replace("/Profile")}
+      >
+        <Text style={{ color: "#fff", fontSize: 18, fontWeight: "bold" }}>👤 Profile</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -358,7 +374,6 @@ const styles = StyleSheet.create({
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   resultsTitle: {
@@ -400,4 +415,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#2E7D32",
   },
-});
+})

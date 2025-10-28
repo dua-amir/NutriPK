@@ -38,10 +38,12 @@ export default function Login() {
         setLoading(false);
         return;
       }
-      // Store JWT token from access_token
+      // Store JWT token and username
       if (data.access_token) {
         await AsyncStorage.setItem('jwtToken', data.access_token);
       }
+      // Save username for profile fetch
+      await AsyncStorage.setItem('username', username);
       setLoading(false);
       router.replace("/Home");
     } catch (err) {
