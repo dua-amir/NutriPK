@@ -31,8 +31,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/user/token")
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+def get_password_hash(password: str):
+    try:
+        # bcrypt handles up to 72 bytes; long passwords are automatically hashed safely
+        return pwd_context.hash(password.encode('utf-8', errors='ignore'))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Password hashing failed: {str(e)}")
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()

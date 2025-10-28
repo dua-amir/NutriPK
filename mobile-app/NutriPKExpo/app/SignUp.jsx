@@ -11,6 +11,9 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
+// Change this to your PC's local IP address
+const API_BASE_URL = "http://127.0.0.1:8000"; // Use localhost for local development
+
 export default function Signup() {
   const router = useRouter();
   const [username, setUsername] = React.useState("");
@@ -23,7 +26,8 @@ export default function Signup() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
-  const handleSignup = async () => {
+  const handleSignup = async (event) => {
+    if (event && event.preventDefault) event.preventDefault();
     setError("");
     if (!username || !email || !password || !confirmPassword) {
       setError("Please fill all fields.");
@@ -33,9 +37,15 @@ export default function Signup() {
       setError("Passwords do not match.");
       return;
     }
+    // Check password length (bcrypt limit is 72 bytes)
+    const encoder = new TextEncoder();
+    if (encoder.encode(password).length > 72) {
+      setError("Password is too long. Please use a shorter password.");
+      return;
+    }
     setLoading(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/signup", {
+  const response = await fetch(`${API_BASE_URL}/api/user/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
