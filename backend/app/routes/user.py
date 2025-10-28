@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, HTTPException, status, Depends, Body
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from app.models.user import UserCreate, UserLogin, UserProfile, UserUpdate, PasswordResetRequest
@@ -100,6 +99,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @router.post("/login", response_model=UserProfile)
+@router.post("/login")
 async def login(data: UserLogin):
     user = await get_user_by_username(data.username)
     if not user:
@@ -107,7 +107,10 @@ async def login(data: UserLogin):
     if not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Incorrect password.")
     user.pop("password")
-    return UserProfile(**user)
+    access_token = create_access_token(data={"sub": user["username"]})
+    profile = UserProfile(**user)
+    # Return both user info and token
+    return {**profile.dict(), "access_token": access_token, "token_type": "bearer"}
 
 
 @router.get("/profile/{username}", response_model=UserProfile)
