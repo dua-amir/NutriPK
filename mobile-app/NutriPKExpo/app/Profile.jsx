@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  TextInput,
 } from "react-native";
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from "expo-router";
 
 export default function Profile() {
@@ -16,13 +18,19 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [age, setAge] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [profileImage, setProfileImage] = useState(null);
+  const [bmi, setBMI] = useState("-");
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
       setError("");
       try {
-        // Get username from AsyncStorage
         const storedUsername = await AsyncStorage.getItem('username');
         if (!storedUsername) {
           setError("No username found. Please login again.");
@@ -31,7 +39,6 @@ export default function Profile() {
         }
         setUsername(storedUsername);
         const token = await AsyncStorage.getItem('jwtToken');
-        console.log('JWT Token:', token);
         const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${storedUsername}`,
           {
             headers: {
@@ -39,7 +46,6 @@ export default function Profile() {
             },
           }
         );
-        console.log('Profile response status:', response.status);
         if (!response.ok) {
           const data = await response.json();
           setError(data.detail || "Failed to fetch profile");
@@ -48,6 +54,12 @@ export default function Profile() {
         }
         const data = await response.json();
         setUser(data);
+        setEmail(data.email || "");
+        setAge(data.age ? String(data.age) : "");
+        setHeight(data.height ? String(data.height) : "");
+        setWeight(data.weight ? String(data.weight) : "");
+        setProfileImage(data.profile_image_url || null);
+        setBMI(getBMI(data.weight, data.height));
       } catch (err) {
         setError("Network error. Please try again.");
       } finally {
@@ -57,14 +69,78 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
-  // Calculate BMI
+  useEffect(() => {
+    setBMI(getBMI(weight, height));
+  }, [weight, height]);
+
+  // Calculate BMI and category
+  const getBMICategory = (bmi) => {
+    if (bmi === "-") return "";
+    const value = parseFloat(bmi);
+    if (value < 18.5) return "Underweight";
+    if (value < 25) return "Normal";
+    if (value < 30) return "Overweight";
+    return "Obese";
+  };
+
   const getBMI = (weight, height) => {
     if (!weight || !height) return "-";
-    // Height in cm, convert to meters
     const h = Number(height) / 100;
     const w = Number(weight);
     if (!h || !w) return "-";
     return (w / (h * h)).toFixed(1);
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      const formData = new FormData();
+  formData.append('email', email);
+  formData.append('age', age ? age : '0');
+  formData.append('height', height ? height : '0');
+  formData.append('weight', weight ? weight : '0');
+      if (profileImage && profileImage.startsWith('file')) {
+        formData.append('profile_image', {
+          uri: profileImage,
+          name: 'profile.jpg',
+          type: 'image/jpeg',
+        });
+      }
+      const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${username}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          // Do NOT set Content-Type here; fetch will set it with boundary
+        },
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.detail || "Failed to update profile");
+      } else {
+        setUser(data);
+        setEditing(false);
+        setError("");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setProfileImage(result.assets[0].uri);
+    }
   };
 
   return (
@@ -73,48 +149,91 @@ export default function Profile() {
         {loading ? (
           <Text>Loading...</Text>
         ) : error ? (
-          <Text style={{ color: "red" }}>{error}</Text>
+          <Text style={{ color: "red" }}>
+            {typeof error === 'object' ? JSON.stringify(error) : error}
+          </Text>
         ) : user ? (
           <>
-            <Image
-              source={require("../assets/images/logo.jpg")}
-              style={styles.avatar}
-            />
-            <Text style={styles.name}>{user.username}</Text>
-            <Text style={styles.email}>{user.email}</Text>
-            <Text style={styles.info}>Age: <Text style={styles.infoValue}>{user.age || "-"}</Text></Text>
-            <Text style={styles.info}>Height: <Text style={styles.infoValue}>{user.height || "-"} cm</Text></Text>
-            <Text style={styles.info}>Weight: <Text style={styles.infoValue}>{user.weight || "-"} kg</Text></Text>
-            <Text style={styles.info}>BMI: <Text style={styles.infoValue}>{getBMI(user.weight, user.height)}</Text></Text>
+            <TouchableOpacity onPress={editing ? pickImage : undefined}>
+              <Image
+                source={profileImage ? { uri: profileImage } : require("../assets/images/logo.jpg")}
+                style={styles.avatar}
+              />
+              {editing && <Text style={styles.editImageText}>Change Photo</Text>}
+            </TouchableOpacity>
+            <Text style={styles.name}>{username}</Text>
+            {editing ? (
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            ) : (
+              <Text style={styles.email}>{email}</Text>
+            )}
+            <View style={{ width: '100%' }}>
+              <Text style={styles.info}>Age:</Text>
+              {editing ? (
+                <TextInput
+                  style={styles.input}
+                  value={age}
+                  onChangeText={setAge}
+                  placeholder="Age"
+                  keyboardType="numeric"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{age || "-"}</Text>
+              )}
+              <Text style={styles.info}>Height (cm):</Text>
+              {editing ? (
+                <TextInput
+                  style={styles.input}
+                  value={height}
+                  onChangeText={setHeight}
+                  placeholder="Height in cm"
+                  keyboardType="numeric"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{height || "-"}</Text>
+              )}
+              <Text style={styles.info}>Weight (kg):</Text>
+              {editing ? (
+                <TextInput
+                  style={styles.input}
+                  value={weight}
+                  onChangeText={setWeight}
+                  placeholder="Weight in kg"
+                  keyboardType="numeric"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{weight || "-"}</Text>
+              )}
+              <Text style={styles.info}>BMI:</Text>
+              <Text style={styles.infoValue}>
+                {bmi} {bmi !== "-" && `(${getBMICategory(bmi)})`}
+              </Text>
+            </View>
+            {editing ? (
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.editButton} onPress={() => setEditing(true)}>
+                <Text style={styles.editButtonText}>Edit Profile</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.logoutButton}
-              onPress={() => router.replace("/Login")}
-            >
-              <Text style={styles.logoutButtonText}>Logout</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.resetButton}
               onPress={async () => {
-                // Call backend to reset password (mock: send email)
-                setError("");
-                try {
-                  const response = await fetch("http://127.0.0.1:8000/api/user/forgot-password", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email: user.email }),
-                  });
-                  const data = await response.json();
-                  if (!response.ok) {
-                    setError(data.detail || "Failed to send reset link");
-                  } else {
-                    setError(data.msg || "Password reset link sent!");
-                  }
-                } catch (err) {
-                  setError("Network error. Please try again.");
-                }
+                await AsyncStorage.removeItem('jwtToken');
+                await AsyncStorage.removeItem('username');
+                router.replace("/Login");
               }}
             >
-              <Text style={styles.resetButtonText}>Reset Password</Text>
+              <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
           </>
         ) : null}
@@ -214,17 +333,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  resetButton: {
-    backgroundColor: "#E0E0D5",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 32,
-    marginBottom: 10,
-  },
-  resetButtonText: {
-    color: "#2E7D32",
-    fontSize: 16,
-    fontWeight: "bold",
+  editImageText: {
+    color: "#4E944F",
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   logoutButton: {
     backgroundColor: "#fff",

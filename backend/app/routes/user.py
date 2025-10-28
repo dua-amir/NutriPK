@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Body
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from app.models.user import UserCreate, UserLogin, UserProfile, UserUpdate, PasswordResetRequest
+from fastapi import UploadFile, File, Form
+import os
 
 from typing import Dict
 from passlib.context import CryptContext
@@ -119,15 +121,42 @@ async def get_profile(username: str, current_user: dict = Depends(get_current_us
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.pop("password")
+    # Ensure all required fields are present
+    user.setdefault("profile_image_url", None)
+    user.setdefault("age", None)
+    user.setdefault("height", None)
+    user.setdefault("weight", None)
     return UserProfile(**user)
 
 
 @router.put("/profile/{username}", response_model=UserProfile)
-async def update_profile(username: str, update: UserUpdate, current_user: dict = Depends(get_current_user)):
+async def update_profile(
+    username: str,
+    email: str = Form(...),
+    age: int = Form(...),
+    height: int = Form(...),
+    weight: int = Form(...),
+    profile_image: UploadFile = File(None),
+    current_user: dict = Depends(get_current_user)
+):
     user = await get_user_by_username(username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    update_data = {k: v for k, v in update.dict(exclude_unset=True).items()}
+    update_data = {
+        "email": email,
+        "age": age,
+        "height": height,
+        "weight": weight,
+    }
+    image_url = user.get("profile_image_url")
+    if profile_image:
+        ext = os.path.splitext(profile_image.filename)[1]
+        img_name = f"{username}{ext}"
+        img_path = os.path.join("app", "models", "profile_images", img_name)
+        with open(img_path, "wb") as f:
+            f.write(await profile_image.read())
+        image_url = f"/static/profile_images/{img_name}"
+        update_data["profile_image_url"] = image_url
     await user_collection.update_one({"username": username}, {"$set": update_data})
     user.update(update_data)
     user.pop("password")

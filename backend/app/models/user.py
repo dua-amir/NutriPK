@@ -17,6 +17,7 @@ class UserProfile(UserBase):
     bmi: Optional[float] = 22.5
     height: Optional[int] = 165
     weight: Optional[int] = 60
+    profile_image_url: Optional[str] = None
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr]
@@ -24,6 +25,7 @@ class UserUpdate(BaseModel):
     bmi: Optional[float]
     height: Optional[int]
     weight: Optional[int]
+    profile_image_url: Optional[str] = None
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
