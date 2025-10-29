@@ -46,8 +46,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-async def get_user_by_username(username: str):
-    user = await user_collection.find_one({"username": username})
+async def get_user_by_email(email: str):
+    user = await user_collection.find_one({"email": email})
     return user
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -58,12 +58,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        email: str = payload.get("sub")
+        if email is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = await get_user_by_username(username)
+    user = await get_user_by_email(email)
     if user is None:
         raise credentials_exception
     return user
@@ -71,13 +71,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 @router.post("/signup", response_model=UserProfile)
 async def signup(user: UserCreate):
-    existing = await user_collection.find_one({"username": user.username})
+    existing = await get_user_by_email(user.email)
     if existing:
-        raise HTTPException(status_code=400, detail="Username already exists")
+        raise HTTPException(status_code=400, detail="Email already exists")
     hashed_password = get_password_hash(user.password)
     user_dict = {
-        "username": user.username,
         "email": user.email,
+        "username": user.username,
         "password": hashed_password,
         "daily_water_intake": 2000,
         "bmi": 22.5,
@@ -92,33 +92,31 @@ async def signup(user: UserCreate):
 # Token endpoint for OAuth2
 @router.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await get_user_by_username(form_data.username)
+    user = await get_user_by_email(form_data.username)
     if not user:
         raise HTTPException(status_code=404, detail="Account does not exist. Please sign up first.")
     if not verify_password(form_data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Incorrect password.")
-    access_token = create_access_token(data={"sub": user["username"]})
+    access_token = create_access_token(data={"sub": user["email"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/login", response_model=UserProfile)
-@router.post("/login")
 async def login(data: UserLogin):
-    user = await get_user_by_username(data.username)
+    user = await get_user_by_email(data.email)
     if not user:
         raise HTTPException(status_code=404, detail="Account does not exist. Please sign up first.")
     if not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Incorrect password.")
     user.pop("password")
-    access_token = create_access_token(data={"sub": user["username"]})
+    access_token = create_access_token(data={"sub": user["email"]})
     profile = UserProfile(**user)
-    # Return both user info and token
     return {**profile.dict(), "access_token": access_token, "token_type": "bearer"}
 
 
-@router.get("/profile/{username}", response_model=UserProfile)
-async def get_profile(username: str, current_user: dict = Depends(get_current_user)):
-    user = await get_user_by_username(username)
+@router.get("/profile/{email}", response_model=UserProfile)
+async def get_profile(email: str, current_user: dict = Depends(get_current_user)):
+    user = await get_user_by_email(email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.pop("password")
@@ -130,21 +128,19 @@ async def get_profile(username: str, current_user: dict = Depends(get_current_us
     return UserProfile(**user)
 
 
-@router.put("/profile/{username}", response_model=UserProfile)
+@router.put("/profile/{email}", response_model=UserProfile)
 async def update_profile(
-    username: str,
-    email: str = Form(...),
+    email: str,
     age: int = Form(...),
     height: int = Form(...),
     weight: int = Form(...),
     profile_image: UploadFile = File(None),
     current_user: dict = Depends(get_current_user)
 ):
-    user = await get_user_by_username(username)
+    user = await get_user_by_email(email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     update_data = {
-        "email": email,
         "age": age,
         "height": height,
         "weight": weight,
@@ -152,13 +148,13 @@ async def update_profile(
     image_url = user.get("profile_image_url")
     if profile_image:
         ext = os.path.splitext(profile_image.filename)[1]
-        img_name = f"{username}{ext}"
+        img_name = f"{email}{ext}"
         img_path = os.path.join("app", "models", "profile_images", img_name)
         with open(img_path, "wb") as f:
             f.write(await profile_image.read())
         image_url = f"/static/profile_images/{img_name}"
         update_data["profile_image_url"] = image_url
-    await user_collection.update_one({"username": username}, {"$set": update_data})
+    await user_collection.update_one({"email": email}, {"$set": update_data})
     user.update(update_data)
     user.pop("password")
     return UserProfile(**user)
@@ -167,11 +163,11 @@ async def update_profile(
 
 @router.post("/forgot-password")
 async def forgot_password(req: PasswordResetRequest):
-    user = await user_collection.find_one({"email": req.email})
+    user = await get_user_by_email(req.email)
     if not user:
         raise HTTPException(status_code=404, detail="Email not found")
     # Generate password reset token (JWT, expires in 30 min)
-    token = create_access_token({"sub": user["username"]}, expires_delta=timedelta(minutes=30))
+    token = create_access_token({"sub": user["email"]}, expires_delta=timedelta(minutes=30))
     reset_link = f"http://localhost:3000/reset-password?token={token}"  # Change to your frontend URL
     sent = send_reset_email(req.email, reset_link)
     if not sent:
@@ -183,17 +179,17 @@ from app.models.user import PasswordReset
 
 @router.post("/reset-password")
 async def reset_password(data: PasswordReset):
-    # Validate token and get username
+    # Validate token and get email
     try:
         payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if not username:
+        email = payload.get("sub")
+        if not email:
             raise HTTPException(status_code=400, detail="Invalid token.")
     except JWTError:
         raise HTTPException(status_code=400, detail="Invalid or expired token.")
-    user = await get_user_by_username(username)
+    user = await get_user_by_email(email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
     hashed_password = get_password_hash(data.new_password)
-    await user_collection.update_one({"username": username}, {"$set": {"password": hashed_password}})
+    await user_collection.update_one({"email": email}, {"$set": {"password": hashed_password}})
     return {"msg": "Password has been reset successfully."}
