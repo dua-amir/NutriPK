@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 
 export default function Login() {
   const router = useRouter();
-  const [username, setUsername] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [rememberMe, setRememberMe] = React.useState(false);
@@ -21,29 +21,44 @@ export default function Login() {
   const [error, setError] = React.useState("");
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setError("Email and password are required.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/login", {
+      const params = new URLSearchParams();
+      params.append("username", email);
+      params.append("password", password);
+      const response = await fetch("http://127.0.0.1:8000/api/user/token", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify({ username, password }),
+        body: params.toString(),
       });
       const data = await response.json();
       console.log('Login API response:', data);
       if (!response.ok) {
-        setError(data.detail || "Login failed");
+        let errorMsg = "Login failed";
+        if (typeof data.detail === "string") {
+          errorMsg = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          errorMsg = data.detail.map(e => e.msg).join("\n");
+        } else if (data.detail && typeof data.detail === "object" && data.detail.msg) {
+          errorMsg = data.detail.msg;
+        }
+        setError(errorMsg);
         setLoading(false);
         return;
       }
-      // Store JWT token and username
+      // Store JWT token and email
       if (data.access_token) {
         await AsyncStorage.setItem('jwtToken', data.access_token);
       }
-      // Save username for profile fetch
-      await AsyncStorage.setItem('username', username);
+      // Save email for profile fetch
+      await AsyncStorage.setItem('email', email);
       setLoading(false);
       router.replace("/Home");
     } catch (err) {
@@ -67,11 +82,12 @@ export default function Login() {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Username"
+            placeholder="Email"
             placeholderTextColor="#A0A0A0"
-            value={username}
-            onChangeText={setUsername}
+            value={email}
+            onChangeText={setEmail}
             autoCapitalize="none"
+            keyboardType="email-address"
           />
           <View style={styles.passwordRow}>
             <TextInput
@@ -124,7 +140,7 @@ export default function Login() {
               {loading ? "Logging in..." : "Login"}
             </Text>
           </TouchableOpacity>
-          <Text style={styles.orText}>or</Text>
+          {/* <Text style={styles.orText}>or</Text>
           <TouchableOpacity
             style={styles.googleButton}
             activeOpacity={0.85}
@@ -135,7 +151,7 @@ export default function Login() {
               style={styles.googleIcon}
             />
             <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <View style={styles.signupRow}>
             <Text style={styles.signupText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => router.push("/SignUp")}>
