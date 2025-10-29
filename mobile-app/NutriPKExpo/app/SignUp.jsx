@@ -154,18 +154,7 @@ export default function Signup() {
               {loading ? "Signing up..." : "Sign Up"}
             </Text>
           </TouchableOpacity>
-          <Text style={styles.orText}>or</Text>
-          <TouchableOpacity
-            style={styles.googleButton}
-            activeOpacity={0.85}
-            onPress={() => router.replace("/Home")}
-          >
-            <Image
-              source={require("../assets/images/google-icon.png")}
-              style={styles.googleIcon}
-            />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
+          {/* Google signup removed */}
           <View style={styles.loginRow}>
             <Text style={styles.loginText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => router.replace("/Login")}>
@@ -183,7 +172,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E0E0D5",
+    backgroundColor: "#FFF6ED", // soft cream
     paddingHorizontal: 24,
     paddingTop: 40,
     paddingBottom: 24,
@@ -191,43 +180,55 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: "center",
     marginBottom: 18,
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: "#FFA726",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
   },
   logo: {
     width: 110,
     height: 110,
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#E0E0D5",
+    borderWidth: 2,
+    borderColor: "#FFA726",
   },
   title: {
     fontSize: 34,
     fontWeight: "bold",
-    color: "#0e4f11ff",
+    color: "#FF9800",
     letterSpacing: 1,
     marginBottom: 2,
+    fontFamily: "sans-serif-medium",
   },
   card: {
     width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: "#FFF",
+    borderRadius: 28,
+    padding: 28,
+    shadowColor: "#FFA726",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
     alignItems: "center",
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#FFECB3",
   },
   cardTitle: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "bold",
-    color: "#0e4f11ff",
+    color: "#43A047",
     marginBottom: 18,
     alignSelf: "flex-start",
     letterSpacing: 0.5,
+    fontFamily: "sans-serif-medium",
   },
   subtitle: {
     display: "none",
@@ -239,14 +240,15 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    height: 44,
-    backgroundColor: "#E0E0D5",
-    borderRadius: 8,
-    borderWidth: 0,
-    paddingHorizontal: 16,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#FFF6ED",
+    borderWidth: 1.5,
+    borderColor: "#FFECB3",
     fontSize: 16,
-    marginBottom: 12,
-    color: "#0e4f11ff",
+    marginBottom: 14,
+    color: "#333",
+    fontFamily: "sans-serif",
   },
   passwordRow: {
     flexDirection: "row",
@@ -261,18 +263,24 @@ const styles = StyleSheet.create({
   },
   signupButton: {
     width: "100%",
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
-    paddingVertical: 12,
+    backgroundColor: "#FF9800",
+    borderRadius: 16,
+    paddingVertical: 14,
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 8,
     marginBottom: 2,
+    shadowColor: "#FFA726",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 2,
   },
   signupButtonText: {
     color: "#fff",
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "bold",
     letterSpacing: 0.2,
+    fontFamily: "sans-serif-medium",
   },
   orText: {
     color: "#0e4f11ff",
@@ -313,16 +321,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 16,
   },
   loginText: {
-    color: "#2E7D32",
-    fontSize: 15,
+    color: "#43A047",
+    fontSize: 16,
+    fontFamily: "sans-serif",
   },
   loginLink: {
-    color: "#2E7D32",
+    color: "#FF9800",
     fontWeight: "bold",
-    fontSize: 15,
+    fontSize: 16,
     textDecorationLine: "underline",
+    fontFamily: "sans-serif-medium",
   },
 });
