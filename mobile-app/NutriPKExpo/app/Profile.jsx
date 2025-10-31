@@ -31,15 +31,15 @@ export default function Profile() {
       setLoading(true);
       setError("");
       try {
-        const storedUsername = await AsyncStorage.getItem('username');
-        if (!storedUsername) {
-          setError("No username found. Please login again.");
+        const storedEmail = await AsyncStorage.getItem('email');
+        if (!storedEmail) {
+          setError("No email found. Please login again.");
           setLoading(false);
           return;
         }
-        setUsername(storedUsername);
+        setEmail(storedEmail);
         const token = await AsyncStorage.getItem('jwtToken');
-        const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${storedUsername}`,
+        const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${storedEmail}`,
           {
             headers: {
               'Authorization': token ? `Bearer ${token}` : '',
@@ -108,7 +108,7 @@ export default function Profile() {
           type: 'image/jpeg',
         });
       }
-      const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${username}`, {
+  const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${email}`, {
         method: 'PUT',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -251,16 +252,55 @@ export default function Home() {
             )}
           </ScrollView>
 
-          <TouchableOpacity style={[styles.predictButton, {marginTop:16}]} onPress={() => setShowNutrients(false)}>
+          <TouchableOpacity
+            style={[styles.predictButton, {marginTop:16, backgroundColor:'#FF6F61'}]}
+            onPress={async () => {
+              if (!predictions || !predictions.nutrients) return;
+              const meal = {
+                name: predictions.top_predictions?.[0]?.dish || 'Unknown Dish',
+                image: image,
+                nutrients: predictions.nutrients,
+                timestamp: new Date().toLocaleString(),
+              };
+              try {
+                const prev = await AsyncStorage.getItem('savedMeals');
+                const arr = prev ? JSON.parse(prev) : [];
+                arr.unshift(meal);
+                await AsyncStorage.setItem('savedMeals', JSON.stringify(arr));
+                alert('Meal saved!');
+              } catch (err) {
+                alert('Failed to save meal');
+              }
+            }}
+          >
+            <Text style={styles.predictButtonText}>💾 Save Meal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.predictButton, {marginTop:10}]} onPress={() => setShowNutrients(false)}>
             <Text style={styles.predictButtonText}>Close</Text>
           </TouchableOpacity>
         </View>
       </Modal>
 
-      {/* Profile Button */}
+      {/* Saved Meals Button */}
       <TouchableOpacity
         style={{
           marginTop: 24,
+          backgroundColor: "#FF6F61",
+          paddingVertical: 14,
+          paddingHorizontal: 36,
+          borderRadius: 12,
+          alignItems: "center",
+          elevation: 2,
+        }}
+        onPress={() => router.push("/SavedMeals")}
+      >
+        <Text style={{ color: "#fff", fontSize: 18, fontWeight: "bold" }}>🍽️ Saved Meals</Text>
+      </TouchableOpacity>
+
+      {/* Profile Button */}
+      <TouchableOpacity
+        style={{
+          marginTop: 16,
           backgroundColor: "#4E944F",
           paddingVertical: 14,
           paddingHorizontal: 36,
