@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any
 from app.models.user import get_current_user
 from app.models.nutrients import Nutrients
-from app.models.models import Meal
+from app.models import Meal
 from app.utils.db import get_db
 from pymongo.database import Database
 
