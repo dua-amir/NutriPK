@@ -60,7 +60,7 @@ export default function Login() {
       // Save email for profile fetch
       await AsyncStorage.setItem('email', email);
       setLoading(false);
-      router.replace("/Home");
+      router.replace("/tabs");
     } catch (err) {
       setError("Network error. Please try again.");
       setLoading(false);

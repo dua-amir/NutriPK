@@ -79,10 +79,11 @@ async def signup(user: UserCreate):
         "email": user.email,
         "username": user.username,
         "password": hashed_password,
-        "daily_water_intake": 2000,
-        "bmi": 22.5,
-        "height": 165,
-        "weight": 60,
+        "bmi": None,
+        "height": None,
+        "weight": None,
+        "age": None,
+        "profile_image_url": None,
     }
     await user_collection.insert_one(user_dict)
     user_dict.pop("password")
@@ -109,6 +110,8 @@ async def login(data: UserLogin):
     if not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Incorrect password.")
     user.pop("password")
+    # Ensure profile_image_url is present
+    user.setdefault("profile_image_url", None)
     access_token = create_access_token(data={"sub": user["email"]})
     profile = UserProfile(**user)
     return {**profile.dict(), "access_token": access_token, "token_type": "bearer"}
@@ -155,9 +158,10 @@ async def update_profile(
         image_url = f"/static/profile_images/{img_name}"
         update_data["profile_image_url"] = image_url
     await user_collection.update_one({"email": email}, {"$set": update_data})
-    user.update(update_data)
-    user.pop("password")
-    return UserProfile(**user)
+    # Re-fetch user to get updated data
+    updated_user = await get_user_by_email(email)
+    updated_user.pop("password")
+    return UserProfile(**updated_user)
 
 
 

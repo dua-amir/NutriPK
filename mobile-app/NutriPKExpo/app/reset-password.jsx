@@ -22,6 +22,12 @@ export default function ResetPassword() {
       setError("Passwords do not match.");
       return;
     }
+    // Strong password check
+    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!strongRegex.test(newPassword)) {
+      setError("Password must be at least 8 characters, include a number, a symbol, a lowercase and an uppercase letter.");
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch("http://127.0.0.1:8000/api/user/reset-password", {

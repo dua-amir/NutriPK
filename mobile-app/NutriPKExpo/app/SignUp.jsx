@@ -37,6 +37,12 @@ export default function Signup() {
       setError("Passwords do not match.");
       return;
     }
+    // Strong password check
+    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!strongRegex.test(password)) {
+      setError("Password must be at least 8 characters, include a number, a symbol, a lowercase and an uppercase letter.");
+      return;
+    }
     // Check password length (bcrypt limit is 72 bytes)
     const encoder = new TextEncoder();
     if (encoder.encode(password).length > 72) {
@@ -59,7 +65,7 @@ export default function Signup() {
         return;
       }
       setLoading(false);
-  router.replace("/Home");
+      router.replace("/Login");
     } catch (err) {
       setError("Network error. Please try again.");
       setLoading(false);

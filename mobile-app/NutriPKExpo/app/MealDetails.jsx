@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 export default function MealDetails() {
   const { meal } = useLocalSearchParams();
+  const router = useRouter();
   const mealObj = meal ? JSON.parse(meal) : null;
 
   if (!mealObj) return <View style={styles.container}><Text>No meal data found.</Text></View>;
@@ -46,6 +47,9 @@ export default function MealDetails() {
       ) : (
         <Text>No nutrients data found.</Text>
       )}
+      <TouchableOpacity style={styles.closeBtn} onPress={() => router.replace('/tabs/SavedMeals')}>
+        <Text style={styles.closeText}>Close</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -93,5 +97,17 @@ const styles = StyleSheet.create({
   },
   nutrientValue: {
     color: '#333',
+  },
+  closeBtn: {
+    marginTop: 24,
+    backgroundColor: '#FF6F61',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  closeText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

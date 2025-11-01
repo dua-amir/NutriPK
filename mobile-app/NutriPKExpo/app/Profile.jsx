@@ -32,7 +32,7 @@ export default function Profile() {
       setError("");
       try {
         const storedEmail = await AsyncStorage.getItem('email');
-        if (!storedEmail) {
+            if (!storedEmail) {
           setError("No email found. Please login again.");
           setLoading(false);
           return;
@@ -58,7 +58,7 @@ export default function Profile() {
         setAge(data.age ? String(data.age) : "");
         setHeight(data.height ? String(data.height) : "");
         setWeight(data.weight ? String(data.weight) : "");
-        setProfileImage(data.profile_image_url || null);
+  setProfileImage(data.profile_image_url ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `http://127.0.0.1:8000${data.profile_image_url}`) : null);
         setBMI(getBMI(data.weight, data.height));
       } catch (err) {
         setError("Network error. Please try again.");
@@ -123,6 +123,7 @@ export default function Profile() {
         setUser(data);
         setEditing(false);
         setError("");
+            setProfileImage(data.profile_image_url ? data.profile_image_url : null);
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -139,7 +140,7 @@ export default function Profile() {
       quality: 0.7,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setProfileImage(result.assets[0].uri);
+          setProfileImage(result.assets[0].uri); // This line remains unchanged
     }
   };
 
@@ -158,6 +159,7 @@ export default function Profile() {
               <Image
                 source={profileImage ? { uri: profileImage } : require("../assets/images/logo.jpg")}
                 style={styles.avatar}
+                onError={() => setProfileImage(null)}
               />
               {editing && <Text style={styles.editImageText}>Change Photo</Text>}
             </TouchableOpacity>
