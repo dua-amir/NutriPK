@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Body
+from fastapi import APIRouter, HTTPException, status, Depends, Body, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from app.models.user import UserCreate, UserLogin, UserProfile, UserUpdate, PasswordResetRequest
 from app.utils.email_utils import send_reset_email
@@ -50,7 +50,13 @@ async def get_user_by_email(email: str):
     user = await user_collection.find_one({"email": email})
     return user
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)):
+    # Debug: log incoming Authorization header and token presence
+    try:
+        auth_hdr = request.headers.get('authorization')
+        print(f"get_current_user: Authorization header: {auth_hdr}")
+    except Exception:
+        auth_hdr = None
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -62,6 +68,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         if email is None:
             raise credentials_exception
     except JWTError:
+        # Log the error to help debugging
+        import traceback
+        print('JWT decode failed:', traceback.format_exc())
         raise credentials_exception
     user = await get_user_by_email(email)
     if user is None:
@@ -133,11 +142,12 @@ async def get_profile(email: str, current_user: dict = Depends(get_current_user)
 
 @router.put("/profile/{email}", response_model=UserProfile)
 async def update_profile(
+    request: Request,
     email: str,
     age: int = Form(...),
     height: int = Form(...),
     weight: int = Form(...),
-    profile_image: UploadFile = File(None),
+    profile_image_url: str = Form(None),
     current_user: dict = Depends(get_current_user)
 ):
     user = await get_user_by_email(email)
@@ -149,14 +159,91 @@ async def update_profile(
         "weight": weight,
     }
     image_url = user.get("profile_image_url")
-    if profile_image:
-        ext = os.path.splitext(profile_image.filename)[1]
-        img_name = f"{email}{ext}"
-        img_path = os.path.join("app", "models", "profile_images", img_name)
-        with open(img_path, "wb") as f:
-            f.write(await profile_image.read())
-        image_url = f"/static/profile_images/{img_name}"
-        update_data["profile_image_url"] = image_url
+    # Read raw form to tolerate different client behaviors
+    form = await request.form()
+
+    # Debug: print form keys and type info
+    try:
+        print('Received form keys:', list(form.keys()))
+        sample = form.get('profile_image_file')
+        if sample is None:
+            print('No profile_image_file field received')
+        else:
+            print('profile_image_file type:', type(sample), 'has_filename:', hasattr(sample, 'filename'))
+    except Exception:
+        pass
+
+    profile_image_file = form.get('profile_image_file')
+    # Also support profile_image_data (data URI base64) from native clients
+    profile_image_data = form.get('profile_image_data')
+    # If field is an UploadFile-like object (Starlette UploadFile), it will be instance of UploadFile or have filename/read
+    try:
+        from fastapi import UploadFile as _UploadFile
+    except Exception:
+        _UploadFile = None
+
+    is_upload = False
+    if profile_image_file is not None:
+        is_upload = (hasattr(profile_image_file, 'filename') and hasattr(profile_image_file, 'read')) or (_UploadFile is not None and isinstance(profile_image_file, _UploadFile))
+
+    if is_upload:
+        try:
+            filename = getattr(profile_image_file, 'filename', f'{email}.jpg')
+            ext = os.path.splitext(filename)[1] or '.jpg'
+            img_name = f"{email}{ext}"
+            # Build absolute path inside the app/models/profile_images directory so it's unambiguous
+            base_app_dir = os.path.dirname(os.path.dirname(__file__))  # backend/app
+            img_dir = os.path.join(base_app_dir, 'models', 'profile_images')
+            os.makedirs(img_dir, exist_ok=True)
+            img_path = os.path.join(img_dir, img_name)
+            contents = await profile_image_file.read()
+            with open(img_path, 'wb') as f:
+                f.write(contents)
+            image_url = f"/static/profile_images/{img_name}"
+            print(f"Saved profile image for {email} -> {img_path} (size={len(contents)} bytes)")
+            update_data['profile_image_url'] = image_url
+        except Exception as e:
+            print(f"Failed to save profile image for {email}: {e}")
+            # don't raise; continue and allow other updates
+            pass
+    else:
+        # If profile_image_file exists but wasn't an UploadFile, log its repr for debugging
+        if profile_image_file is not None and not is_upload:
+            try:
+                print(f"profile_image_file (raw): {repr(profile_image_file)[:400]}")
+            except Exception:
+                pass
+        # If profile_image_data (base64 Data URI) was provided, decode and save it
+        if profile_image_data:
+            try:
+                # data:[mime];base64,[data]
+                header, b64data = profile_image_data.split(',', 1)
+                # infer extension
+                if 'image/png' in header:
+                    ext = '.png'
+                else:
+                    ext = '.jpg'
+                img_name = f"{email}{ext}"
+                base_app_dir = os.path.dirname(os.path.dirname(__file__))
+                img_dir = os.path.join(base_app_dir, 'models', 'profile_images')
+                os.makedirs(img_dir, exist_ok=True)
+                img_path = os.path.join(img_dir, img_name)
+                import base64
+                contents = base64.b64decode(b64data)
+                with open(img_path, 'wb') as f:
+                    f.write(contents)
+                image_url = f"/static/profile_images/{img_name}"
+                print(f"Saved profile image (base64) for {email} -> {img_path} (size={len(contents)} bytes)")
+                update_data['profile_image_url'] = image_url
+            except Exception as e:
+                print(f"Failed to save profile image data for {email}: {e}")
+                # fallback to profile_image_url if provided
+                if profile_image_url:
+                    update_data['profile_image_url'] = profile_image_url
+        else:
+            # If a URL string was provided via form (or client didn't send UploadFile), use provided profile_image_url field
+            if profile_image_url:
+                update_data["profile_image_url"] = profile_image_url
     await user_collection.update_one({"email": email}, {"$set": update_data})
     # Re-fetch user to get updated data
     updated_user = await get_user_by_email(email)

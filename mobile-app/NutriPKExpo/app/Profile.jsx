@@ -10,6 +10,8 @@ import {
   TextInput,
 } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
 import { useRouter } from "expo-router";
 
 export default function Profile() {
@@ -23,8 +25,10 @@ export default function Profile() {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [profileImage, setProfileImage] = useState(null);
+  const [imageBroken, setImageBroken] = useState(false);
   const [bmi, setBMI] = useState("-");
   const [editing, setEditing] = useState(false);
+  const BACKEND_BASE = 'http://127.0.0.1:8000';
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -39,13 +43,22 @@ export default function Profile() {
         }
         setEmail(storedEmail);
         const token = await AsyncStorage.getItem('jwtToken');
-        const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${storedEmail}`,
-          {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : '',
-            },
-          }
-        );
+        console.log('fetchProfile using token:', !!token);
+        const response = await fetch(`${BACKEND_BASE}/api/user/profile/${storedEmail}`, {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Accept': 'application/json',
+          },
+        });
+        console.log('profile fetch response status:', response.status);
+        if (response.status === 401) {
+          // Token invalid/expired — clear and redirect to login
+          await AsyncStorage.removeItem('jwtToken');
+          setError('Session expired. Please login again.');
+          setLoading(false);
+          router.replace('/Login');
+          return;
+        }
         if (!response.ok) {
           const data = await response.json();
           setError(data.detail || "Failed to fetch profile");
@@ -97,18 +110,82 @@ export default function Profile() {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
       const formData = new FormData();
-  formData.append('email', email);
-  formData.append('age', age ? age : '0');
-  formData.append('height', height ? height : '0');
-  formData.append('weight', weight ? weight : '0');
-      if (profileImage && profileImage.startsWith('file')) {
-        formData.append('profile_image', {
-          uri: profileImage,
-          name: 'profile.jpg',
-          type: 'image/jpeg',
-        });
+      formData.append('email', email);
+      formData.append('age', age ? age : '0');
+      formData.append('height', height ? height : '0');
+      formData.append('weight', weight ? weight : '0');
+
+      // Attach profile image correctly for web/native
+      if (profileImage) {
+        if (Platform.OS === 'web' && profileImage.startsWith('http')) {
+          // On web, if it's an existing URL we won't re-upload unless it's a file URI
+        } else if (Platform.OS === 'web' && profileImage.startsWith('data:')) {
+          // data URI -> convert to blob
+          const res = await fetch(profileImage);
+          const blob = await res.blob();
+          const file = new File([blob], 'profile.jpg', { type: blob.type || 'image/jpeg' });
+          formData.append('profile_image_file', file);
+        } else if (Platform.OS === 'web' && profileImage.startsWith('file:')) {
+          // file: on web (rare) -> fetch then blob
+          const res = await fetch(profileImage);
+          const blob = await res.blob();
+          const file = new File([blob], 'profile.jpg', { type: blob.type || 'image/jpeg' });
+          formData.append('profile_image_file', file);
+        } else {
+          // Native: try to read the local file as base64 and send it as profile_image_data
+          try {
+            // profileImage is usually file://... on native
+            const uri = profileImage;
+            // derive extension/mime
+            const uriParts = uri.split('.');
+            const fileExt = uriParts[uriParts.length - 1] || 'jpg';
+            const mimeType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
+            // Read file as base64 using Expo FileSystem
+            const b64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+            const dataUri = `data:${mimeType};base64,${b64}`;
+            formData.append('profile_image_data', dataUri);
+            console.log('Profile upload (native) will send base64 data, size:', b64.length, 'mime:', mimeType);
+          } catch (err) {
+            console.log('FileSystem read failed, attempting fetch fallback:', err);
+            // Fallback: try fetching the uri and converting to base64
+            try {
+              const res = await fetch(profileImage);
+              if (res.ok) {
+                const buffer = await res.arrayBuffer();
+                // convert arrayBuffer to base64
+                let binary = "";
+                const bytes = new Uint8Array(buffer);
+                const chunkSize = 0x8000;
+                for (let i = 0; i < bytes.length; i += chunkSize) {
+                  binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+                }
+                const b64 = typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
+                const mimeType = (profileImage.endsWith('.png') || profileImage.indexOf('image/png') !== -1) ? 'image/png' : 'image/jpeg';
+                const dataUri = `data:${mimeType};base64,${b64}`;
+                formData.append('profile_image_data', dataUri);
+                console.log('Profile upload (native) fetch->base64 appended, size:', b64.length);
+              } else {
+                console.log('Fetch fallback failed:', res.status);
+              }
+            } catch (err2) {
+              console.log('Fetch fallback also failed:', err2);
+              // Final fallback: append uri object (older behavior)
+              const uriParts = profileImage.split('.');
+              const fileExt = uriParts[uriParts.length - 1] || 'jpg';
+              const mimeType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
+              formData.append('profile_image_file', {
+                uri: profileImage,
+                name: `profile.${fileExt}`,
+                type: mimeType,
+              });
+              console.log('Profile upload (native) fallback will send uri object:', { uri: profileImage, name: `profile.${fileExt}`, type: mimeType });
+            }
+          }
+        }
       }
-  const response = await fetch(`http://127.0.0.1:8000/api/user/profile/${email}`, {
+  console.log('Submitting profile update, profileImage:', profileImage, 'Platform:', Platform.OS, 'sending auth:', !!token);
+      
+      const response = await fetch(`${BACKEND_BASE}/api/user/profile/${email}`, {
         method: 'PUT',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -117,13 +194,22 @@ export default function Profile() {
         body: formData,
       });
       const data = await response.json();
+      console.log('Profile update response:', response.status, data);
+      if (response.ok && (!data.profile_image_url || data.profile_image_url === null)) {
+        alert('Profile saved but server did not return an image URL. Check backend logs.');
+      }
       if (!response.ok) {
         setError(data.detail || "Failed to update profile");
       } else {
         setUser(data);
         setEditing(false);
         setError("");
-            setProfileImage(data.profile_image_url ? data.profile_image_url : null);
+            // Normalize returned profile image URL to absolute; update only if backend returned one
+            const imgUrl = data.profile_image_url ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `${BACKEND_BASE}${data.profile_image_url}`) : null;
+            if (imgUrl) {
+              setProfileImage(imgUrl);
+              setImageBroken(false);
+            }
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -141,6 +227,7 @@ export default function Profile() {
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
           setProfileImage(result.assets[0].uri); // This line remains unchanged
+          setImageBroken(false);
     }
   };
 
@@ -157,9 +244,9 @@ export default function Profile() {
           <>
             <TouchableOpacity onPress={editing ? pickImage : undefined}>
               <Image
-                source={profileImage ? { uri: profileImage } : require("../assets/images/logo.jpg")}
+                source={(!imageBroken && profileImage) ? { uri: profileImage } : require("../assets/images/logo.jpg")}
                 style={styles.avatar}
-                onError={() => setProfileImage(null)}
+                onError={() => setImageBroken(true)}
               />
               {editing && <Text style={styles.editImageText}>Change Photo</Text>}
             </TouchableOpacity>

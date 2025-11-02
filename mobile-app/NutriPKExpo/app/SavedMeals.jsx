@@ -5,8 +5,76 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 
 function formatTime(datetime) {
-  const parts = datetime.split(',');
-  return parts.length > 1 ? parts[1].trim() : datetime;
+  // Return only time part in Pakistan time (UTC+5) as "h:mm AM/PM" without seconds.
+  if (!datetime) return '';
+  try {
+    const dateObj = parseToDateObj(datetime);
+    if (!dateObj) return '';
+
+    // Compute Pakistan time by adding +5 hours to absolute epoch ms.
+    const PK_OFFSET_MS = 5 * 60 * 60 * 1000; // UTC+5
+    const pkMs = dateObj.getTime() + PK_OFFSET_MS;
+    const pkDate = new Date(pkMs);
+
+    // Use UTC getters on pkDate to get the PK local components regardless of client TZ
+    let hours = pkDate.getUTCHours();
+    const minutes = pkDate.getUTCMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    const minsStr = minutes.toString().padStart(2, '0');
+    return `${hours}:${minsStr} ${ampm}`;
+  } catch (e) {
+    return '';
+  }
+}
+
+// Helper: robustly parse various timestamp formats into a Date object.
+function parseToDateObj(datetime) {
+  if (!datetime) return null;
+  // If it's already a Date
+  if (datetime instanceof Date) return datetime;
+
+  // Normalize common cases
+  const s = String(datetime).trim();
+
+  // Case: ISO with T or with Z
+  if (s.includes('T') || /\d{4}-\d{2}-\d{2}T/.test(s)) {
+    const d = new Date(s);
+    if (!isNaN(d)) return d;
+  }
+
+  // Case: 'YYYY-MM-DD HH:MM:SS(.micro)?' (likely UTC) -> treat as UTC by appending Z
+  const ymdSpaceTime = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2}(\.\d+)?)?$/;
+  if (ymdSpaceTime.test(s)) {
+    const iso = s.replace(' ', 'T') + 'Z';
+    const d = new Date(iso);
+    if (!isNaN(d)) return d;
+  }
+
+  // Case: 'dd/mm/yyyy, HH:MM:SS' or 'dd/mm/yyyy, HH:MM'
+  if (s.includes('/')) {
+    const parts = s.split(',');
+    const datePart = parts[0].trim();
+    const timePart = parts[1] ? parts[1].trim() : '';
+    const [d, m, y] = datePart.split('/').map(Number);
+    if (d && m && y) {
+      let hours = 0, mins = 0, secs = 0;
+      if (timePart) {
+        const t = timePart.split(':').map(tk => Number(tk));
+        if (!isNaN(t[0])) hours = t[0];
+        if (!isNaN(t[1])) mins = t[1];
+        if (!isNaN(t[2])) secs = t[2];
+      }
+      const dt = new Date(y, m - 1, d, hours, mins, secs);
+      if (!isNaN(dt)) return dt;
+    }
+  }
+
+  // Fallback: try Date constructor (may treat as local)
+  const fallback = new Date(s);
+  if (!isNaN(fallback)) return fallback;
+  return null;
 }
 
 function getDayLabel(dateStr) {
@@ -22,8 +90,10 @@ function getDayLabel(dateStr) {
 
 export default function SavedMeals() {
   const [groupedMeals, setGroupedMeals] = useState({});
+  const [brokenImages, setBrokenImages] = useState({});
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const BACKEND_BASE = 'http://127.0.0.1:8000';
 
   // Delete meal handler (improved)
   const handleDeleteMeal = async (meal) => {
@@ -62,13 +132,40 @@ export default function SavedMeals() {
       if (!res.ok) throw new Error('Failed to fetch meals');
       const data = await res.json();
       const meals = data.meals || [];
-      // group by date
+  console.log('Fetched meals count:', meals.length);
+  console.log('Sample meal.image values:', meals.slice(0,10).map(m => m.image));
+      // group by date (dd/mm/yyyy) and sort
       const groups = {};
       meals.forEach(meal => {
-        const date = meal.timestamp && meal.timestamp.split(',')[0].trim();
-        if (!date) return;
-        if (!groups[date]) groups[date] = [];
-        groups[date].push(meal);
+        // parse to Date and then derive PK date string to ensure consistent grouping
+        const dt = parseToDateObj(meal.timestamp);
+        let dateStr = '';
+        if (dt) {
+          // compute date in Asia/Karachi timezone by using toLocaleString and extracting date parts
+          const pk = new Date(dt.toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+          const d = pk.getDate().toString().padStart(2, '0');
+          const m = (pk.getMonth() + 1).toString().padStart(2, '0');
+          const y = pk.getFullYear();
+          dateStr = `${d}/${m}/${y}`;
+        } else {
+          // fallback to original date part
+          dateStr = meal.timestamp && meal.timestamp.split(',')[0].trim();
+        }
+        if (!dateStr) return;
+        if (!groups[dateStr]) groups[dateStr] = [];
+        groups[dateStr].push(meal);
+      });
+      // Sort meals within each group: latest first
+      Object.keys(groups).forEach(key => {
+        groups[key].sort((a, b) => {
+          const da = parseToDateObj(a.timestamp) || new Date(0);
+          const db = parseToDateObj(b.timestamp) || new Date(0);
+          return db - da;
+        });
+      });
+      // Debug resolved URIs for first few meals
+      Object.keys(groups).slice(0,3).forEach(k => {
+        console.log('Group', k, 'resolved images:', groups[k].slice(0,5).map((m, i) => resolveImageSource(m.image, BACKEND_BASE)));
       });
       setGroupedMeals(groups);
     } catch (e) {
@@ -119,9 +216,16 @@ export default function SavedMeals() {
           }).map(([date, meals]) => (
             <View key={date}>
               <Text style={styles.dayLabel}>{getDayLabel(date)}</Text>
-              {meals.map((meal, idx) => (
+              {meals.map((meal, idx) => {
+                const key = `${date}-${idx}`;
+                const resolved = resolveImageSource(meal.image, BACKEND_BASE);
+                return (
                 <View key={idx} style={styles.card}>
-                  <Image source={{ uri: meal.image }} style={styles.image} />
+                  <Image
+                    source={brokenImages[key] ? require('../assets/images/food.jpg') : resolved}
+                    style={styles.image}
+                    onError={() => setBrokenImages(prev => ({ ...prev, [key]: true }))}
+                  />
                   <View style={styles.cardContent}>
                     <Text style={styles.mealName}>{meal.name}</Text>
                     <Text style={styles.timestamp}>{formatTime(meal.timestamp)}</Text>
@@ -135,13 +239,34 @@ export default function SavedMeals() {
                     </View>
                   </View>
                 </View>
-              ))}
+              );
+              })}
             </View>
           ))
         )}
       </ScrollView>
     </View>
   );
+}
+
+// Resolve different kinds of image values into an Image source.
+function resolveImageSource(img, backendBase) {
+  if (!img) return require('../assets/images/food.jpg');
+  const s = String(img || '').trim();
+  // If server-served static path like '/static/..' prefix with backend base
+  if (s.startsWith('/')) {
+    return { uri: backendBase + s };
+  }
+  // If already absolute URL
+  if (s.startsWith('http://') || s.startsWith('https://')) {
+    return { uri: s };
+  }
+  // blob:, file:, content: URIs may work on the running device; return as-is
+  if (s.startsWith('blob:') || s.startsWith('file:') || s.startsWith('content:')) {
+    return { uri: s };
+  }
+  // Fallback: treat as absolute URI
+  return { uri: s };
 }
 
 const styles = StyleSheet.create({

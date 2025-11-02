@@ -258,27 +258,52 @@ export default function Home() {
               if (!predictions || !predictions.nutrients) return;
               const email = await AsyncStorage.getItem('email');
               if (!email) return;
-              const meal = {
-                name: predictions.top_predictions?.[0]?.dish || 'Unknown Dish',
-                image: image,
-                nutrients: predictions.nutrients,
-                timestamp: new Date().toISOString(),
-                email: email,
-              };
+
               try {
-                // Save to AsyncStorage (for local use)
-                const prev = await AsyncStorage.getItem('savedMeals_' + email);
-                const arr = prev ? JSON.parse(prev) : [];
-                arr.unshift(meal);
-                await AsyncStorage.setItem('savedMeals_' + email, JSON.stringify(arr));
-                // Send to backend
-                await fetch('http://127.0.0.1:8000/api/user/save-meal', {
+                const formData = new FormData();
+                formData.append('name', predictions.top_predictions?.[0]?.dish || 'Unknown Dish');
+                formData.append('nutrients', JSON.stringify(predictions.nutrients));
+                formData.append('timestamp', new Date().toISOString());
+                formData.append('email', email);
+
+                // Attach image file for backend to store. On web, fetch the blob first.
+                let fileObj = null;
+                if (Platform.OS === 'web') {
+                  const resp = await fetch(image);
+                  const blob = await resp.blob();
+                  const fileName = `photo.jpg`;
+                  fileObj = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+                  formData.append('image', fileObj);
+                } else {
+                  // Native: supply uri/name/type object
+                  const uriParts = image.split('.');
+                  const fileExt = uriParts[uriParts.length - 1] || 'jpg';
+                  const mimeType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
+                  formData.append('image', {
+                    uri: image,
+                    name: `photo.${fileExt}`,
+                    type: mimeType,
+                  });
+                }
+
+                const resp = await fetch('http://127.0.0.1:8000/api/user/save-meal', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(meal),
+                  body: formData,
                 });
+                if (!resp.ok) throw new Error('Save failed: ' + resp.status);
+                const result = await resp.json();
+                // Use returned meal (with server image URL) to store locally
+                const savedMeal = result.meal || null;
+                if (savedMeal) {
+                  const prev = await AsyncStorage.getItem('savedMeals_' + email);
+                  const arr = prev ? JSON.parse(prev) : [];
+                  // Ensure timestamp and image values are strings for frontend
+                  arr.unshift(savedMeal);
+                  await AsyncStorage.setItem('savedMeals_' + email, JSON.stringify(arr));
+                }
                 alert('Meal saved!');
               } catch (err) {
+                console.error('Save meal error', err);
                 alert('Failed to save meal');
               }
             }}
