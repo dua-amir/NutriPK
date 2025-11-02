@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 
@@ -25,37 +25,68 @@ export default function SavedMeals() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
+  // Delete meal handler (improved)
+  const handleDeleteMeal = async (meal) => {
+    if (!meal._id) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/user/delete-meal?meal_id=${meal._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const text = await res.text();
+      console.log('Delete meal response:', res.status, text);
+      if (!res.ok) {
+        Alert.alert('Error', 'Failed to delete from server: ' + text);
+      }
+      fetchMeals();
+    } catch (e) {
+      console.log('Error deleting meal from backend:', e);
+      Alert.alert('Error', 'Network error: ' + e.message);
+    }
+  };
+
   const fetchMeals = async () => {
     setLoading(true);
-    const email = await AsyncStorage.getItem('email');
-    console.log('Fetched email:', email);
-    if (!email) {
-      setGroupedMeals({});
-      setLoading(false);
-      return;
-    }
-    const saved = await AsyncStorage.getItem('savedMeals_' + email);
-    console.log('Fetched savedMeals:', saved);
-    let meals = [];
-    if (saved) {
-      try {
-        meals = JSON.parse(saved);
-      } catch (e) {
-        console.log('Error parsing savedMeals:', e);
+    try {
+      // Replace with backend API call
+      // You may need to pass user email if required by backend
+      const email = await getUserEmail();
+      if (!email) {
+        setGroupedMeals({});
+        setLoading(false);
+        return;
       }
+      const res = await fetch(`http://127.0.0.1:8000/api/user/all-meals?email=${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error('Failed to fetch meals');
+      const data = await res.json();
+      const meals = data.meals || [];
+      // group by date
+      const groups = {};
+      meals.forEach(meal => {
+        const date = meal.timestamp && meal.timestamp.split(',')[0].trim();
+        if (!date) return;
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(meal);
+      });
+      setGroupedMeals(groups);
+    } catch (e) {
+      setGroupedMeals({});
+      console.log('Error fetching meals:', e);
     }
-    console.log('Parsed meals:', meals);
-    // group by date
-    const groups = {};
-    meals.forEach(meal => {
-      const date = meal.timestamp && meal.timestamp.split(',')[0].trim();
-      if (!date) return;
-      if (!groups[date]) groups[date] = [];
-      groups[date].push(meal);
-    });
-    console.log('Grouped meals:', groups);
-    setGroupedMeals(groups);
     setLoading(false);
+  };
+
+  // Helper to get user email (from AsyncStorage or context)
+  const getUserEmail = async () => {
+    // If you have user context, use that. Otherwise, fallback to AsyncStorage
+    try {
+      const email = await AsyncStorage.getItem('email');
+      return email;
+    } catch {
+      return null;
+    }
   };
 
   useEffect(() => {
@@ -94,9 +125,14 @@ export default function SavedMeals() {
                   <View style={styles.cardContent}>
                     <Text style={styles.mealName}>{meal.name}</Text>
                     <Text style={styles.timestamp}>{formatTime(meal.timestamp)}</Text>
-                    <TouchableOpacity style={styles.detailsBtn} onPress={() => router.push({ pathname: '/MealDetails', params: { meal: JSON.stringify(meal) } })}>
-                      <Text style={styles.detailsText}>View Details</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <TouchableOpacity style={styles.detailsBtn} onPress={() => router.push({ pathname: '/MealDetails', params: { meal: JSON.stringify(meal) } })}>
+                        <Text style={styles.detailsText}>View Details</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteMeal(meal)}>
+                        <Text style={styles.deleteIcon}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               ))}
@@ -190,5 +226,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 15,
+  },
+    deleteBtn: {
+    marginLeft: 10,
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    padding: 6,
+    alignSelf: 'flex-start',
+  },
+  deleteIcon: {
+    fontSize: 18,
+    color: '#FF6F61',
+    fontWeight: 'bold',
   },
 });

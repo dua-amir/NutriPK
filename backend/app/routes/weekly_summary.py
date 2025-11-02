@@ -1,33 +1,45 @@
 from fastapi import APIRouter, Depends, Query
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
-from app.models.user import get_current_user
-from app.models.nutrients import Nutrients
-from app.models import Meal
 from app.utils.db import get_db
 from pymongo.database import Database
+from dateutil.parser import parse
 
 router = APIRouter()
 
-@router.get("/api/user/weekly-summary")
+@router.get("/weekly-summary")
 def weekly_summary(email: str = Query(...), db: Database = Depends(get_db)):
     # Get current week (Monday 00:00 to Sunday 23:59)
     now = datetime.now()
-    day_of_week = now.weekday() # 0=Mon, 6=Sun
+    day_of_week = now.weekday()  # 0=Mon, 6=Sun
     monday = now - timedelta(days=day_of_week)
     monday = monday.replace(hour=0, minute=0, second=0, microsecond=0)
     week_days = [(monday + timedelta(days=i)) for i in range(7)]
-    # Query meals for user in current week
-    meals = list(db.meals.find({
-        "email": email,
-        "timestamp": {"$gte": week_days[0], "$lt": week_days[-1] + timedelta(days=1)}
-    }))
+    # Fetch all meals for user
+    meals = list(db.meals.find({"email": email}))
+    print(f"DEBUG: Meals fetched for {email} => {meals}")
     # Prepare daily summary
     summary = []
     for d in week_days:
         day_start = d.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start + timedelta(days=1)
-        day_meals = [m for m in meals if day_start <= m["timestamp"] < day_end]
+        day_meals = []
+        for m in meals:
+            ts = m.get("timestamp")
+            print(f"DEBUG: Meal timestamp raw: {ts}, type: {type(ts)}")
+            if not ts:
+                print(f"DEBUG: Skipping meal with missing timestamp: {m}")
+                continue
+            if isinstance(ts, str):
+                try:
+                    ts_parsed = parse(ts)
+                    print(f"DEBUG: Parsed timestamp: {ts_parsed}")
+                    ts = ts_parsed
+                except Exception as e:
+                    print(f"DEBUG: Failed to parse timestamp: {ts}, error: {e}")
+                    continue
+            if isinstance(ts, datetime) and day_start <= ts < day_end:
+                day_meals.append(m)
+        print(f"DEBUG: Meals for {day_start.strftime('%a %d %b')}: {day_meals}")
         total_calories = total_protein = total_carbs = total_fats = 0
         for meal in day_meals:
             nutrients = meal.get("nutrients", {})
@@ -57,4 +69,6 @@ def weekly_summary(email: str = Query(...), db: Database = Depends(get_db)):
         "fats": sum(d["totalFats"] for d in summary),
         "meals": sum(d["count"] for d in summary),
     }
+    print(f"DEBUG: Weekly summary: {summary}")
+    print(f"DEBUG: Weekly totals: {totals}")
     return {"summary": summary, "totals": totals}

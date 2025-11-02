@@ -4,7 +4,7 @@ from pymongo.database import Database
 
 router = APIRouter()
 
-@router.get("/api/user/all-meals")
+@router.get("/all-meals")
 def all_meals(email: str = Query(...), db: Database = Depends(get_db)):
     meals = list(db.meals.find({"email": email}))
     # Convert ObjectId and datetime to string for frontend

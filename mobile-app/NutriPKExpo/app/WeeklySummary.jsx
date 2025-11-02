@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Polyline, G, Text as SvgText } from 'react-native-svg';
@@ -20,91 +21,37 @@ export default function WeeklySummary() {
   const [loading, setLoading] = useState(true);
   const [totals, setTotals] = useState({calories:0,protein:0,carbs:0,fats:0,meals:0});
 
-  useEffect(() => {
-    const fetchSummary = async () => {
-      setLoading(true);
-      const email = await AsyncStorage.getItem('email');
-      if (!email) {
-        setSummary([]);
-        setLoading(false);
-        return;
-      }
-      try {
-        // Fetch all meals for user from backend
-        const response = await fetch(`http://127.0.0.1:8000/api/user/all-meals?email=${encodeURIComponent(email)}`);
-        if (!response.ok) throw new Error('Failed to fetch meals');
-        const data = await response.json();
-        const meals = data.meals || [];
-        // Calculate current week (Mon-Sun)
-        const now = new Date();
-        const dayOfWeek = now.getDay();
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
-        monday.setHours(0,0,0,0);
-        const weekDays = [];
-        for (let i = 0; i < 7; i++) {
-          const d = new Date(monday);
-          d.setDate(monday.getDate() + i);
-          weekDays.push(d);
-        }
-        // Prepare summary for current week
-        const summaryArr = weekDays.map((d) => {
-          const dayStart = new Date(d);
-          dayStart.setHours(0,0,0,0);
-          const dayEnd = new Date(dayStart);
-          dayEnd.setDate(dayEnd.getDate() + 1);
-          // Find meals for this day
-          const dayMeals = meals.filter(meal => {
-            let dateObj = new Date(meal.timestamp);
-            if (isNaN(dateObj)) {
-              // fallback for old format
-              const parts = (meal.timestamp || '').split(',')[0].trim().split('/');
-              if (parts.length === 3) {
-                dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
-              }
-            }
-            return dateObj >= dayStart && dateObj < dayEnd;
-          });
-          let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0;
-          dayMeals.forEach(meal => {
-            if (meal.nutrients) {
-              Object.entries(meal.nutrients).forEach(([key, value]) => {
-                const k = key.toLowerCase();
-                if (k.includes('calor')) totalCalories += Number(value) || 0;
-                if (k.includes('protein')) totalProtein += Number(value) || 0;
-                if (k.includes('carbo') || k.includes('carb')) totalCarbs += Number(value) || 0;
-                if (k.includes('fat')) totalFats += Number(value) || 0;
-              });
-            }
-          });
-          return {
-            day: dayStart.toDateString(),
-            count: dayMeals.length,
-            totalCalories,
-            totalProtein,
-            totalCarbs,
-            totalFats,
-          };
-        });
-        // Calculate totals for the week
-        let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0, totalMeals = 0;
-        summaryArr.forEach(day => {
-          totalCalories += day.totalCalories;
-          totalProtein += day.totalProtein;
-          totalCarbs += day.totalCarbs;
-          totalFats += day.totalFats;
-          totalMeals += day.count;
-        });
-        setTotals({calories:totalCalories,protein:totalProtein,carbs:totalCarbs,fats:totalFats,meals:totalMeals});
-        setSummary(summaryArr);
-      } catch (err) {
-        setSummary([]);
-        setTotals({calories:0,protein:0,carbs:0,fats:0,meals:0});
-      }
+  const fetchSummary = async () => {
+    setLoading(true);
+    const email = await AsyncStorage.getItem('email');
+    if (!email) {
+      setSummary([]);
+      setTotals({calories:0,protein:0,carbs:0,fats:0,meals:0});
       setLoading(false);
-    };
+      return;
+    }
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/user/weekly-summary?email=${encodeURIComponent(email)}`);
+      if (!response.ok) throw new Error('Failed to fetch summary');
+      const data = await response.json();
+      setSummary(data.summary || []);
+      setTotals(data.totals || {calories:0,protein:0,carbs:0,fats:0,meals:0});
+    } catch (err) {
+      setSummary([]);
+      setTotals({calories:0,protein:0,carbs:0,fats:0,meals:0});
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchSummary();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchSummary();
+    }, [])
+  );
 
   // Prepare graph data
   const graphHeight = 120;

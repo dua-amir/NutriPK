@@ -5,7 +5,7 @@ from pymongo.database import Database
 
 router = APIRouter()
 
-@router.post("/api/user/save-meal")
+@router.post("/save-meal")
 def save_meal(meal: dict = Body(...), db: Database = Depends(get_db)):
     # Ensure timestamp is a datetime object
     ts = meal.get("timestamp")
