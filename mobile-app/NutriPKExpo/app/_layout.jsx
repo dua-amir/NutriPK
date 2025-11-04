@@ -9,25 +9,24 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack initialRouteName="SplashScreen">
-        <Stack.Screen name="SplashScreen" options={{ headerShown: false }} />
-        <Stack.Screen name="Onboarding1" options={{ headerShown: false }} />
-        <Stack.Screen name="Onboarding2" options={{ headerShown: false }} />
-        <Stack.Screen name="Login" options={{ headerShown: false }} />
-        <Stack.Screen name="SignUp" options={{ headerShown: false }} />
-        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
-        <Stack.Screen name="Profile" options={{ headerShown: false }} />
-        <Stack.Screen name="Home" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack
+        initialRouteName="SplashScreen"
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="SplashScreen" />
+        <Stack.Screen name="Onboarding1" />
+        <Stack.Screen name="Onboarding2" />
+        <Stack.Screen name="Login" />
+        <Stack.Screen name="SignUp" />
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="Profile" />
+        <Stack.Screen name="Home" />
+        <Stack.Screen name="tabs" />
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
