@@ -16,7 +16,7 @@ export default function Onboarding2() {
     <View style={styles.container}>
       <View style={styles.content}>
         <Image
-          source={require("../assets/images/onboarding2.jpg")}
+          source={require("../assets/images/onboarding2.png")}
           style={styles.heroImage}
           resizeMode="contain"
         />
@@ -36,7 +36,7 @@ export default function Onboarding2() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => router.replace("/Login")}
+            onPress={() => router.replace("/screens/AccountCreate")}
             style={styles.button}
           >
             <Text style={styles.buttonText}>Get Started</Text>
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: "800",
-    color: "#0D2B3A",
+    color: "#0e4f11ff",
     marginBottom: 12,
   },
   subtitle: {
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   button: {
-    backgroundColor: "#FF7F32",
+    backgroundColor: "#0e4f11ff",
     paddingVertical: 12,
     paddingHorizontal: 28,
     borderRadius: 8,
@@ -93,9 +93,9 @@ const styles = StyleSheet.create({
   ghost: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "#FF7F32",
+    borderColor: "#0e4f11ff",
   },
   ghostText: {
-    color: "#FF7F32",
+    color: "#0e4f11ff",
   },
 });

@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     fontSize: 48,
     lineHeight: 54,
     fontWeight: "800",
-    color: "#0D2B3A",
+    color: "#0e4f11ff",
   },
   accent: {
     width: 60,
