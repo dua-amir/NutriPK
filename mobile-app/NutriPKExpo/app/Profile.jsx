@@ -68,10 +68,12 @@ export default function Profile() {
         const data = await response.json();
         setUser(data);
         setEmail(data.email || "");
+        // Username should be editable but default to whatever server returned (if any)
+        setUsername(data.username || '');
         setAge(data.age ? String(data.age) : "");
         setHeight(data.height ? String(data.height) : "");
         setWeight(data.weight ? String(data.weight) : "");
-  setProfileImage(data.profile_image_url ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `${BACKEND_BASE}${data.profile_image_url}`) : null);
+        setProfileImage(data.profile_image_url ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `${BACKEND_BASE}${data.profile_image_url}`) : null);
         setBMI(getBMI(data.weight, data.height));
       } catch (err) {
         setError("Network error. Please try again.");
@@ -114,6 +116,8 @@ export default function Profile() {
       formData.append('age', age ? age : '0');
       formData.append('height', height ? height : '0');
       formData.append('weight', weight ? weight : '0');
+  // include username when updating profile (backend will ignore if not supported)
+  formData.append('username', username ? username : '');
 
       // Attach profile image correctly for web/native
       if (profileImage) {
@@ -198,7 +202,22 @@ export default function Profile() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      {/* Green header card (top area similar to screenshot) */}
+      <View style={styles.headerCard}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Account</Text>
+          <Text style={styles.headerSubtitle}>Manage your profile</Text>
+        </View>
+        <TouchableOpacity onPress={editing ? pickImage : undefined} style={styles.headerAvatarWrap}>
+          <Image
+            source={(!imageBroken && profileImage) ? { uri: profileImage } : require("../assets/images/logo.jpg")}
+            style={styles.headerAvatar}
+            onError={() => setImageBroken(true)}
+          />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.card}>
         {loading ? (
           <Text>Loading...</Text>
@@ -208,118 +227,152 @@ export default function Profile() {
           </Text>
         ) : user ? (
           <>
-            <TouchableOpacity onPress={editing ? pickImage : undefined}>
-              <Image
-                source={(!imageBroken && profileImage) ? { uri: profileImage } : require("../assets/images/logo.jpg")}
-                style={styles.avatar}
-                onError={(e) => {
-                  console.log('Profile image failed to load uri:', profileImage, 'error:', e.nativeEvent || e);
-                  setImageBroken(true);
-                }}
-              />
-              {editing && <Text style={styles.editImageText}>Change Photo</Text>}
-            </TouchableOpacity>
-            <Text style={styles.name}>{username}</Text>
-            {editing ? (
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            ) : (
-              <Text style={styles.email}>{email}</Text>
-            )}
-            <View style={{ width: '100%' }}>
-              <Text style={styles.info}>Age:</Text>
-              {editing ? (
-                <TextInput
-                  style={styles.input}
-                  value={age}
-                  onChangeText={setAge}
-                  placeholder="Age"
-                  keyboardType="numeric"
-                />
-              ) : (
-                <Text style={styles.infoValue}>{age || "-"}</Text>
-              )}
-              <Text style={styles.info}>Height (cm):</Text>
-              {editing ? (
-                <TextInput
-                  style={styles.input}
-                  value={height}
-                  onChangeText={setHeight}
-                  placeholder="Height in cm"
-                  keyboardType="numeric"
-                />
-              ) : (
-                <Text style={styles.infoValue}>{height || "-"}</Text>
-              )}
-              <Text style={styles.info}>Weight (kg):</Text>
-              {editing ? (
-                <TextInput
-                  style={styles.input}
-                  value={weight}
-                  onChangeText={setWeight}
-                  placeholder="Weight in kg"
-                  keyboardType="numeric"
-                />
-              ) : (
-                <Text style={styles.infoValue}>{weight || "-"}</Text>
-              )}
-              <Text style={styles.info}>BMI:</Text>
-              <Text style={styles.infoValue}>
-                {bmi} {bmi !== "-" && `(${getBMICategory(bmi)})`}
-              </Text>
+            <View style={styles.rowInfo}>
+              <View style={styles.infoCol}>
+                <Text style={styles.name}>{username || (user && user.username) || ''}</Text>
+                <Text style={styles.email}>{email}</Text>
+              </View>
             </View>
-            {editing ? (
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.editButton} onPress={() => setEditing(true)}>
-                <Text style={styles.editButtonText}>Edit Profile</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={async () => {
-                await AsyncStorage.removeItem('jwtToken');
-                await AsyncStorage.removeItem('username');
-                router.replace("/Login");
-              }}
-            >
-              <Text style={styles.logoutButtonText}>Logout</Text>
-            </TouchableOpacity>
+
+            <View style={styles.form}>
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                style={[styles.input, !editing && styles.inputReadOnly]}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Your name"
+                editable={editing}
+                selectTextOnFocus={editing}
+              />
+
+              <Text style={styles.label}>Age</Text>
+              <TextInput
+                style={[styles.input, !editing && styles.inputReadOnly]}
+                value={age}
+                onChangeText={setAge}
+                placeholder="Age"
+                keyboardType="numeric"
+                editable={editing}
+              />
+
+              <Text style={styles.label}>Height (cm)</Text>
+              <TextInput
+                style={[styles.input, !editing && styles.inputReadOnly]}
+                value={height}
+                onChangeText={setHeight}
+                placeholder="Height in cm"
+                keyboardType="numeric"
+                editable={editing}
+              />
+
+              <Text style={styles.label}>Weight (kg)</Text>
+              <TextInput
+                style={[styles.input, !editing && styles.inputReadOnly]}
+                value={weight}
+                onChangeText={setWeight}
+                placeholder="Weight in kg"
+                keyboardType="numeric"
+                editable={editing}
+              />
+
+              <Text style={styles.label}>BMI</Text>
+              <Text style={styles.bmiText}>{bmi} {bmi !== '-' && `(${getBMICategory(bmi)})`}</Text>
+
+              <View style={styles.buttonsRow}>
+                {editing ? (
+                  <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.editButton} onPress={() => setEditing(true)}>
+                    <Text style={styles.editButtonText}>Edit Profile</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           </>
         ) : null}
       </View>
+
+      {/* Logout placed at the bottom with icon */}
+      <TouchableOpacity
+        style={[styles.logoutWrap, styles.logoutLeft]}
+        onPress={async () => {
+          await AsyncStorage.removeItem('jwtToken');
+          await AsyncStorage.removeItem('username');
+          router.replace('/Login');
+        }}
+      >
+        <Image source={require('../assets/images/logout-icon.png')} style={styles.logoutIcon} />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E0E0D5",
-    paddingHorizontal: 24,
-    paddingTop: 40,
+  scrollContainer: {
+    paddingTop: 0,
+    backgroundColor: '#FFF3EC',
     paddingBottom: 24,
+    alignItems: 'center',
+  },
+  container: {
+    width: '100%',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  headerCard: {
+    width: '100%',
+    backgroundColor: '#2E7D32',
+    borderRadius: 4,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    marginTop: 30,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerLeft: {
+    flexDirection: 'column',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  headerSubtitle: {
+    color: '#DFF5E0',
+    fontSize: 12,
+    marginTop: 2,
   },
   card: {
     width: "100%",
     backgroundColor: "#fff",
     borderRadius: 18,
-    padding: 28,
+    padding: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
-    alignItems: "center",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  headerAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#fff',
+    backgroundColor: '#fff',
+  },
+  headerAvatarWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowInfo: {
+    width: '100%',
     marginBottom: 12,
   },
   avatar: {
@@ -330,6 +383,19 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#2E7D32",
     backgroundColor: "#E0E0D5",
+  },
+  avatarWrap: {
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 12,
+  },
+  infoCol: {
+    flex: 1,
   },
   name: {
     fontSize: 24,
@@ -342,6 +408,16 @@ const styles = StyleSheet.create({
     color: "#4E944F",
     marginBottom: 8,
   },
+  form: {
+    width: '100%',
+    marginTop: 6,
+  },
+  label: {
+    color: '#4E944F',
+    fontWeight: '600',
+    marginTop: 8,
+    marginBottom: 4,
+  },
   info: {
     fontSize: 15,
     color: "#4E944F",
@@ -351,6 +427,11 @@ const styles = StyleSheet.create({
     color: "#2E7D32",
     fontWeight: "bold",
   },
+  bmiText: {
+    color: '#2E7D32',
+    fontWeight: '700',
+    marginBottom: 6,
+  },
   joined: {
     fontSize: 14,
     color: "#A0A0A0",
@@ -359,13 +440,17 @@ const styles = StyleSheet.create({
   input: {
     width: "100%",
     height: 44,
-    backgroundColor: "#E0E0D5",
+    backgroundColor: "#FFF3EC",
     borderRadius: 8,
     borderWidth: 0,
     paddingHorizontal: 16,
     fontSize: 16,
     marginBottom: 12,
     color: "#2E7D32",
+  },
+  inputReadOnly: {
+    backgroundColor: '#F5F5F5',
+    color: '#A0A0A0',
   },
   editButton: {
     backgroundColor: "#4E944F",
@@ -397,17 +482,38 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-  logoutButton: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 32,
-    borderWidth: 1,
-    borderColor: "#2E7D32",
+  buttonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    gap: 8,
+    marginTop: 6,
   },
-  logoutButtonText: {
-    color: "#2E7D32",
+  logoutWrap: {
+    width: '100%',
+    marginTop: 6,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#E7E7E7',
+  },
+  logoutLeft: {
+    justifyContent: 'flex-start',
+  },
+  logoutIcon: {
+    width: 22,
+    height: 22,
+    marginRight: 8,
+    tintColor: '#2E7D32',
+  },
+  logoutText: {
+    color: '#2E7D32',
+    fontWeight: '700',
     fontSize: 16,
-    fontWeight: "bold",
   },
 });
