@@ -105,7 +105,7 @@ export default function Signup() {
     >
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => router.push("/AccountCreate")}
+        onPress={() => router.push("/screens/AccountCreate")}
       >
         <Ionicons name="arrow-back" size={22} color="#0e4f11ff" />
       </TouchableOpacity>
