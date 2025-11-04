@@ -1,26 +1,32 @@
 from fastapi import APIRouter, Depends, Query
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.utils.db import get_db
 from pymongo.database import Database
 from dateutil.parser import parse
+import pytz
 
 router = APIRouter()
 
 @router.get("/weekly-summary")
 def weekly_summary(email: str = Query(...), db: Database = Depends(get_db)):
-    # Get current week (Monday 00:00 to Sunday 23:59)
-    now = datetime.now()
-    day_of_week = now.weekday()  # 0=Mon, 6=Sun
-    monday = now - timedelta(days=day_of_week)
-    monday = monday.replace(hour=0, minute=0, second=0, microsecond=0)
-    week_days = [(monday + timedelta(days=i)) for i in range(7)]
+    # Get current week boundaries in Asia/Karachi (Monday 00:00 to next Monday 00:00)
+    tz_pk = pytz.timezone('Asia/Karachi')
+    now_pk = datetime.now(tz_pk)
+    day_of_week = now_pk.weekday()  # 0=Mon, 6=Sun
+    # start of Monday in PK tz
+    monday_pk = (now_pk - timedelta(days=day_of_week)).replace(hour=0, minute=0, second=0, microsecond=0)
+    # Build list of day starts in PK tz
+    week_days_pk = [(monday_pk + timedelta(days=i)) for i in range(7)]
+    # Convert PK day boundaries to UTC naive datetimes for comparison with stored UTC timestamps
+    week_days = [d.astimezone(pytz.utc).replace(tzinfo=None) for d in week_days_pk]
     # Fetch all meals for user
     meals = list(db.meals.find({"email": email}))
     print(f"DEBUG: Meals fetched for {email} => {meals}")
     # Prepare daily summary
     summary = []
     for d in week_days:
-        day_start = d.replace(hour=0, minute=0, second=0, microsecond=0)
+        # d is already the day start (UTC naive) corresponding to PK midnight
+        day_start = d
         day_end = day_start + timedelta(days=1)
         day_meals = []
         for m in meals:
@@ -29,14 +35,21 @@ def weekly_summary(email: str = Query(...), db: Database = Depends(get_db)):
             if not ts:
                 print(f"DEBUG: Skipping meal with missing timestamp: {m}")
                 continue
+            # Parse string timestamps and normalize to UTC naive datetimes for comparison
             if isinstance(ts, str):
                 try:
                     ts_parsed = parse(ts)
                     print(f"DEBUG: Parsed timestamp: {ts_parsed}")
-                    ts = ts_parsed
+                    # If parsed ts has tzinfo, convert to UTC and drop tzinfo
+                    if ts_parsed.tzinfo is not None:
+                        ts = ts_parsed.astimezone(pytz.utc).replace(tzinfo=None)
+                    else:
+                        # assume naive timestamps are in UTC
+                        ts = ts_parsed
                 except Exception as e:
                     print(f"DEBUG: Failed to parse timestamp: {ts}, error: {e}")
                     continue
+            # If timestamp stored as datetime, assume it's UTC naive and compare directly
             if isinstance(ts, datetime) and day_start <= ts < day_end:
                 day_meals.append(m)
         print(f"DEBUG: Meals for {day_start.strftime('%a %d %b')}: {day_meals}")

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, File, UploadFile, Form
-from datetime import datetime
+from datetime import datetime, timezone
 from app.utils.db import get_db
 from pymongo.database import Database
 import os
 import json
 import uuid
+from dateutil.parser import parse as parse_dt
 
 router = APIRouter()
 
@@ -30,16 +31,20 @@ async def save_meal(
         except Exception:
             meal["nutrients"] = nutrients
 
-    # parse timestamp
+    # parse timestamp (normalize to UTC naive datetime)
     if timestamp:
-        if isinstance(timestamp, str):
-            try:
-                meal["timestamp"] = datetime.fromisoformat(timestamp)
-            except Exception:
-                try:
-                    meal["timestamp"] = datetime.strptime(timestamp, "%d/%m/%Y, %I:%M:%S %p")
-                except Exception:
-                    meal["timestamp"] = datetime.utcnow()
+        try:
+            ts_parsed = parse_dt(timestamp)
+            # If timestamp has tzinfo, convert to UTC then strip tzinfo to store as naive UTC
+            if ts_parsed.tzinfo is not None:
+                ts_utc = ts_parsed.astimezone(timezone.utc).replace(tzinfo=None)
+            else:
+                # assume naive timestamps are already in UTC
+                ts_utc = ts_parsed
+            meal["timestamp"] = ts_utc
+        except Exception:
+            # fallback to current UTC time
+            meal["timestamp"] = datetime.utcnow()
     else:
         meal["timestamp"] = datetime.utcnow()
 

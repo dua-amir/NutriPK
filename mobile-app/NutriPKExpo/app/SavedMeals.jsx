@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2E7D32',
+    color: '#0e4f11ff',
     marginTop: 18,
     marginBottom: 8,
     alignSelf: 'flex-start',
