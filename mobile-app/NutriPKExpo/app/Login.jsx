@@ -88,6 +88,7 @@ export default function Login() {
         <Text style={styles.cardSubtitle}>
           Sign in to track your progress and stay committed to your health goals.
         </Text>
+        {error ? <Text style={[styles.errorText, {color: '#d32f2f'}]}>{error}</Text> : null}
 
         <View style={styles.fieldLabel}><Text style={styles.labelText}>Email</Text></View>
         <View style={styles.inputBox}>
@@ -97,7 +98,7 @@ export default function Login() {
             placeholder="Email"
             placeholderTextColor="#A0A0A0"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text)=>{ setEmail(text); if (error) setError(''); }}
             autoCapitalize="none"
             keyboardType="email-address"
             selectionColor="#0e4f11ff"
@@ -114,7 +115,7 @@ export default function Login() {
             placeholder="Password"
             placeholderTextColor="#A0A0A0"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text)=>{ setPassword(text); if (error) setError(''); }}
             secureTextEntry={!showPassword}
             selectionColor="#0e4f11ff"
             underlineColorAndroid="transparent"
