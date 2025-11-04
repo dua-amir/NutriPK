@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Body, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from app.models.user import UserCreate, UserLogin, UserProfile, UserUpdate, PasswordResetRequest
+from app.models.user import UserCreate, UserLogin, UserProfile, UserUpdate, PasswordResetRequest, OTPVerify
 from app.utils.email_utils import send_reset_email
+from app.utils.email_utils import send_otp_email
 from fastapi import UploadFile, File, Form
 import os
 
@@ -264,6 +265,51 @@ async def forgot_password(req: PasswordResetRequest):
     if not sent:
         raise HTTPException(status_code=500, detail="Failed to send email. Please try again later.")
     return {"msg": "Password reset link sent to your email."}
+
+
+@router.post("/send-otp")
+async def send_otp(req: PasswordResetRequest):
+    user = await get_user_by_email(req.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found")
+    # generate secure 6-digit OTP
+    import secrets
+    otp = f"{secrets.randbelow(1000000):06d}"
+    expires = datetime.utcnow() + timedelta(minutes=10)
+    # store OTP and expiry in user document
+    await user_collection.update_one({"email": req.email}, {"$set": {"otp_code": otp, "otp_expires": expires}})
+    sent = send_otp_email(req.email, otp)
+    if not sent:
+        raise HTTPException(status_code=500, detail="Failed to send OTP. Please try again later.")
+    return {"msg": "OTP sent to your email."}
+
+
+@router.post("/verify-otp")
+async def verify_otp(otp_req: OTPVerify):
+    user = await get_user_by_email(otp_req.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found")
+    stored = user.get('otp_code')
+    expires = user.get('otp_expires')
+    if not stored or not expires:
+        raise HTTPException(status_code=400, detail="No OTP requested for this account.")
+    # compare and check expiry
+    if str(stored) != str(otp_req.otp):
+        raise HTTPException(status_code=400, detail="Invalid OTP.")
+    if isinstance(expires, str):
+        try:
+            from dateutil.parser import parse as parse_dt
+            expires_dt = parse_dt(expires)
+        except Exception:
+            expires_dt = None
+    else:
+        expires_dt = expires
+    if not expires_dt or datetime.utcnow() > expires_dt:
+        raise HTTPException(status_code=400, detail="OTP expired.")
+    # OTP valid -> remove otp fields and issue short lived token for reset (15 min)
+    await user_collection.update_one({"email": otp_req.email}, {"$unset": {"otp_code": "", "otp_expires": ""}})
+    token = create_access_token({"sub": otp_req.email}, expires_delta=timedelta(minutes=15))
+    return {"msg": "OTP verified.", "token": token}
 
 # Password reset endpoint
 from app.models.user import PasswordReset
