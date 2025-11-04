@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
@@ -185,6 +185,20 @@ export default function Home() {
   const formatConfidence = (confidence) => {
     return (confidence * 100).toFixed(1) + "%";
   };
+
+  // Clear camera state whenever screen is focused so it appears refreshed
+  useFocusEffect(
+    React.useCallback(() => {
+      // Reset UI state when entering the screen
+      setImage(null);
+      setPredictions(null);
+      setError(null);
+      setShowNutrients(false);
+      setLoading(false);
+      // No onCleanup necessary
+      return () => {};
+    }, [])
+  );
 
   // Return only the main nutrient fields (Calories, Carbohydrates, Fats, Protein)
   const getDisplayedNutrients = (nutrients) => {
