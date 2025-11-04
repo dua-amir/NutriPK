@@ -6,6 +6,7 @@ export default function MealDetails() {
   const { meal } = useLocalSearchParams();
   const router = useRouter();
   const mealObj = meal ? JSON.parse(meal) : null;
+  const BACKEND_BASE = 'http://192.168.1.8:8000';
 
   if (!mealObj) return <View style={styles.container}><Text>No meal data found.</Text></View>;
 
@@ -31,9 +32,16 @@ export default function MealDetails() {
     }
   }
 
+  function resolveImage(img) {
+    if (!img) return null;
+    const s = String(img).trim();
+    if (s.startsWith('/')) return BACKEND_BASE + s;
+    return s;
+  }
+
   return (
     <ScrollView style={styles.container}>
-      <Image source={{ uri: mealObj.image }} style={styles.image} />
+      <Image source={{ uri: resolveImage(mealObj.image) }} style={styles.image} />
       <Text style={styles.name}>{mealObj.name}</Text>
       <Text style={styles.timestamp}>{mealObj.timestamp}</Text>
       <Text style={styles.sectionTitle}>Nutrients</Text>

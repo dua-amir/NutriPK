@@ -106,16 +106,21 @@ export default function WeeklySummary() {
               {/* Fats - Yellow */}
               <Polyline points={getPoints('totalFats')} stroke="#FFC107" strokeWidth="3" fill="none" />
               {/* Day labels */}
-              {summary.map((d, i) => (
-                <SvgText
-                  key={i}
-                  x={padding + (i * (graphWidth - 2 * padding) / (days - 1))}
-                  y={graphHeight - padding + 18}
-                  fontSize="12"
-                  fill="#888"
-                  textAnchor="middle"
-                >{`D${7-i}`}</SvgText>
-              ))}
+              {summary.map((d, i) => {
+                // map index to Mon..Sun labels; assume summary[0] is earliest (Mon)
+                const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                const label = labels[i] || `Day ${i+1}`;
+                return (
+                  <SvgText
+                    key={i}
+                    x={padding + (i * (graphWidth - 2 * padding) / (days - 1))}
+                    y={graphHeight - padding + 18}
+                    fontSize="12"
+                    fill="#888"
+                    textAnchor="middle"
+                  >{label}</SvgText>
+                );
+              })}
             </Svg>
             <View style={styles.legendRow}>
               <View style={[styles.legendDot,{backgroundColor:'#FF6F61'}]} /><Text style={styles.legendLabel}>Calories</Text>
@@ -140,6 +145,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    marginTop: 30,
     marginBottom: 18,
     color: '#0e4f11ff',
     alignSelf: 'center',

@@ -71,7 +71,7 @@ export default function Profile() {
         setAge(data.age ? String(data.age) : "");
         setHeight(data.height ? String(data.height) : "");
         setWeight(data.weight ? String(data.weight) : "");
-  setProfileImage(data.profile_image_url ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `http://127.0.0.1:8000${data.profile_image_url}`) : null);
+  setProfileImage(data.profile_image_url ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `${BACKEND_BASE}${data.profile_image_url}`) : null);
         setBMI(getBMI(data.weight, data.height));
       } catch (err) {
         setError("Network error. Please try again.");
@@ -117,74 +117,37 @@ export default function Profile() {
 
       // Attach profile image correctly for web/native
       if (profileImage) {
-        if (Platform.OS === 'web' && profileImage.startsWith('http')) {
-          // On web, if it's an existing URL we won't re-upload unless it's a file URI
-        } else if (Platform.OS === 'web' && profileImage.startsWith('data:')) {
-          // data URI -> convert to blob
-          const res = await fetch(profileImage);
-          const blob = await res.blob();
-          const file = new File([blob], 'profile.jpg', { type: blob.type || 'image/jpeg' });
-          formData.append('profile_image_file', file);
-        } else if (Platform.OS === 'web' && profileImage.startsWith('file:')) {
-          // file: on web (rare) -> fetch then blob
-          const res = await fetch(profileImage);
-          const blob = await res.blob();
-          const file = new File([blob], 'profile.jpg', { type: blob.type || 'image/jpeg' });
-          formData.append('profile_image_file', file);
-        } else {
-          // Native: try to read the local file as base64 and send it as profile_image_data
-          try {
-            // profileImage is usually file://... on native
+        try {
+          if (Platform.OS === 'web') {
+            // On web: if profileImage is a data: or file: URI, convert to blob and append
+            if (profileImage.startsWith('data:') || profileImage.startsWith('file:')) {
+              try {
+                const res = await fetch(profileImage);
+                const blob = await res.blob();
+                const file = new File([blob], 'profile.jpg', { type: blob.type || 'image/jpeg' });
+                formData.append('profile_image_file', file);
+                console.log('Profile (web) appended file from data/file uri');
+              } catch (weberr) {
+                console.log('Failed to convert web data/file uri to blob:', weberr);
+              }
+            }
+            // if it's http(s) string, don't re-upload
+          } else {
+            // Native: append uri object directly — RN fetch knows how to handle this for multipart
             const uri = profileImage;
-            // derive extension/mime
             const uriParts = uri.split('.');
             const fileExt = uriParts[uriParts.length - 1] || 'jpg';
             const mimeType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
-            // Read file as base64 using Expo FileSystem
-            const b64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-            const dataUri = `data:${mimeType};base64,${b64}`;
-            formData.append('profile_image_data', dataUri);
-            console.log('Profile upload (native) will send base64 data, size:', b64.length, 'mime:', mimeType);
-          } catch (err) {
-            console.log('FileSystem read failed, attempting fetch fallback:', err);
-            // Fallback: try fetching the uri and converting to base64
-            try {
-              const res = await fetch(profileImage);
-              if (res.ok) {
-                const buffer = await res.arrayBuffer();
-                // convert arrayBuffer to base64
-                let binary = "";
-                const bytes = new Uint8Array(buffer);
-                const chunkSize = 0x8000;
-                for (let i = 0; i < bytes.length; i += chunkSize) {
-                  binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-                }
-                const b64 = typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
-                const mimeType = (profileImage.endsWith('.png') || profileImage.indexOf('image/png') !== -1) ? 'image/png' : 'image/jpeg';
-                const dataUri = `data:${mimeType};base64,${b64}`;
-                formData.append('profile_image_data', dataUri);
-                console.log('Profile upload (native) fetch->base64 appended, size:', b64.length);
-              } else {
-                console.log('Fetch fallback failed:', res.status);
-              }
-            } catch (err2) {
-              console.log('Fetch fallback also failed:', err2);
-              // Final fallback: append uri object (older behavior)
-              const uriParts = profileImage.split('.');
-              const fileExt = uriParts[uriParts.length - 1] || 'jpg';
-              const mimeType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
-              formData.append('profile_image_file', {
-                uri: profileImage,
-                name: `profile.${fileExt}`,
-                type: mimeType,
-              });
-              console.log('Profile upload (native) fallback will send uri object:', { uri: profileImage, name: `profile.${fileExt}`, type: mimeType });
-            }
+            const fileObj = { uri: uri, name: `profile.${fileExt}`, type: mimeType };
+            formData.append('profile_image_file', fileObj);
+            console.log('Profile upload (native) appended uri object:', fileObj);
           }
+        } catch (attachErr) {
+          console.log('Error while attaching profile image to FormData:', attachErr);
         }
       }
-  console.log('Submitting profile update, profileImage:', profileImage, 'Platform:', Platform.OS, 'sending auth:', !!token);
-      
+      console.log('Submitting profile update to', `${BACKEND_BASE}/api/user/profile/${email}`, 'profileImage:', profileImage, 'Platform:', Platform.OS, 'auth present:', !!token);
+
       const response = await fetch(`${BACKEND_BASE}/api/user/profile/${email}`, {
         method: 'PUT',
         headers: {
@@ -193,8 +156,11 @@ export default function Profile() {
         },
         body: formData,
       });
-      const data = await response.json();
-      console.log('Profile update response:', response.status, data);
+
+      const text = await response.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch (e) { data = text; }
+      console.log('Profile update response status:', response.status, 'body:', data);
       if (response.ok && (!data.profile_image_url || data.profile_image_url === null)) {
         alert('Profile saved but server did not return an image URL. Check backend logs.');
       }
@@ -205,7 +171,7 @@ export default function Profile() {
         setEditing(false);
         setError("");
             // Normalize returned profile image URL to absolute; update only if backend returned one
-            const imgUrl = data.profile_image_url ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `${BACKEND_BASE}${data.profile_image_url}`) : null;
+            const imgUrl = data && data.profile_image_url ? (String(data.profile_image_url).startsWith('http') ? data.profile_image_url : `${BACKEND_BASE}${data.profile_image_url}`) : null;
             if (imgUrl) {
               setProfileImage(imgUrl);
               setImageBroken(false);
@@ -246,7 +212,10 @@ export default function Profile() {
               <Image
                 source={(!imageBroken && profileImage) ? { uri: profileImage } : require("../assets/images/logo.jpg")}
                 style={styles.avatar}
-                onError={() => setImageBroken(true)}
+                onError={(e) => {
+                  console.log('Profile image failed to load uri:', profileImage, 'error:', e.nativeEvent || e);
+                  setImageBroken(true);
+                }}
               />
               {editing && <Text style={styles.editImageText}>Change Photo</Text>}
             </TouchableOpacity>

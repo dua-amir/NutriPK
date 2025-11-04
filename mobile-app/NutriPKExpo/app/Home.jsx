@@ -99,6 +99,16 @@ export default function Home({ navigation }) {
     loadMeals();
   }, []);
 
+  // Backend base used to prefix relative static paths returned by backend
+  const BACKEND_BASE = 'http://192.168.1.8:8000';
+
+  function resolveMealImage(img) {
+    if (!img) return null;
+    const s = String(img).trim();
+    if (s.startsWith('/')) return BACKEND_BASE + s;
+    return s;
+  }
+
   useEffect(() => {
     Animated.timing(waterAnim, { toValue: Math.min(1, waterCount / 8), duration: 450, useNativeDriver: false }).start();
   }, [waterCount]);
@@ -230,7 +240,7 @@ export default function Home({ navigation }) {
                     <View style={styles.mealLeft}>
                         <View style={styles.mealTopRow}>
                           {m.image ? (
-                            <Image source={{ uri: m.image }} style={styles.mealImage} />
+                            <Image source={{ uri: resolveMealImage(m.image) }} style={styles.mealImage} />
                           ) : (
                             <View style={styles.mealAvatar}><Text style={styles.mealAvatarText}>{(m.name||'M').charAt(0).toUpperCase()}</Text></View>
                           )}

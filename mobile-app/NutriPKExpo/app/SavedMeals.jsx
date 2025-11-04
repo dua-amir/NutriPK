@@ -117,6 +117,19 @@ export default function SavedMeals() {
     }
   };
 
+  // Ask user to confirm deletion before calling backend
+  const confirmDeleteMeal = (meal) => {
+    Alert.alert(
+      'Delete meal',
+      'Are you sure you want to delete this meal? It will be removed from your history too.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => handleDeleteMeal(meal) }
+      ],
+      { cancelable: true }
+    );
+  };
+
   const fetchMeals = async () => {
     setLoading(true);
     try {
@@ -141,17 +154,26 @@ export default function SavedMeals() {
         const dt = parseToDateObj(meal.timestamp);
         let dateStr = '';
         if (dt) {
-          // compute date in Asia/Karachi timezone by using toLocaleString and extracting date parts
-          const pk = new Date(dt.toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
-          const d = pk.getDate().toString().padStart(2, '0');
-          const m = (pk.getMonth() + 1).toString().padStart(2, '0');
-          const y = pk.getFullYear();
-          dateStr = `${d}/${m}/${y}`;
-        } else {
-          // fallback to original date part
-          dateStr = meal.timestamp && meal.timestamp.split(',')[0].trim();
+          try {
+            // compute date in Asia/Karachi timezone by using toLocaleString and extracting date parts
+            const pk = new Date(dt.toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+            const d = pk.getDate().toString().padStart(2, '0');
+            const m = (pk.getMonth() + 1).toString().padStart(2, '0');
+            const y = pk.getFullYear();
+            dateStr = `${d}/${m}/${y}`;
+          } catch (e) {
+            dateStr = null;
+          }
         }
-        if (!dateStr) return;
+        if (!dateStr) {
+          // Fallback: try to extract a date-like substring, else tag as Unknown
+          if (meal.timestamp && typeof meal.timestamp === 'string') {
+            const match = meal.timestamp.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+            dateStr = match ? match[1] : 'Unknown date';
+          } else {
+            dateStr = 'Unknown date';
+          }
+        }
         if (!groups[dateStr]) groups[dateStr] = [];
         groups[dateStr].push(meal);
       });
@@ -220,7 +242,7 @@ export default function SavedMeals() {
                 const key = `${date}-${idx}`;
                 const resolved = resolveImageSource(meal.image, BACKEND_BASE);
                 return (
-                <View key={idx} style={styles.card}>
+                <View key={idx} style={[styles.card, { position: 'relative' }]}>
                   <Image
                     source={brokenImages[key] ? require('../assets/images/food.jpg') : resolved}
                     style={styles.image}
@@ -233,11 +255,11 @@ export default function SavedMeals() {
                       <TouchableOpacity style={styles.detailsBtn} onPress={() => router.push({ pathname: '/MealDetails', params: { meal: JSON.stringify(meal) } })}>
                         <Text style={styles.detailsText}>View Details</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteMeal(meal)}>
-                        <Text style={styles.deleteIcon}>🗑️</Text>
-                      </TouchableOpacity>
                     </View>
                   </View>
+                  <TouchableOpacity style={styles.deleteBtnAbsolute} onPress={() => confirmDeleteMeal(meal)}>
+                    <Text style={styles.deleteIcon}>🗑️</Text>
+                  </TouchableOpacity>
                 </View>
               );
               })}
@@ -285,6 +307,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    marginTop: 30,
     marginBottom: 18,
     color: '#0e4f11ff',
     alignSelf: 'center',
@@ -354,14 +377,25 @@ const styles = StyleSheet.create({
   },
     deleteBtn: {
     marginLeft: 10,
-    backgroundColor: '#eee',
     borderRadius: 8,
     padding: 6,
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
   },
   deleteIcon: {
     fontSize: 18,
     color: '#FF6F61',
     fontWeight: 'bold',
+  },
+  deleteBtnAbsolute: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
   },
 });

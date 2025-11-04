@@ -16,6 +16,7 @@ export default function ForgotPassword() {
   const [email, setEmail] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState("");
+  const BACKEND_BASE = 'http://192.168.1.8:8000';
 
   const handleReset = async () => {
     setError("");
@@ -27,7 +28,7 @@ export default function ForgotPassword() {
       // Optimistic navigation: open SendOTP screen immediately, then send OTP in background
       router.push(`/screens/SendOTP?email=${encodeURIComponent(email)}`);
       // still send OTP request so backend sends email
-      fetch("http://127.0.0.1:8000/api/user/send-otp", {
+  fetch(`${BACKEND_BASE}/api/user/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
