@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from "react-native";
+import { formatDateTimePK } from './utils/dateUtils';
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 export default function MealDetails() {
@@ -43,7 +44,7 @@ export default function MealDetails() {
     <ScrollView style={styles.container}>
       <Image source={{ uri: resolveImage(mealObj.image) }} style={styles.image} />
       <Text style={styles.name}>{mealObj.name}</Text>
-      <Text style={styles.timestamp}>{mealObj.timestamp}</Text>
+  <Text style={styles.timestamp}>{formatDateTimePK(mealObj.timestamp)}</Text>
       <Text style={styles.sectionTitle}>Nutrients</Text>
       {displayedNutrients.length > 0 ? (
         displayedNutrients.map((item) => (
@@ -73,6 +74,7 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 16,
     marginBottom: 18,
+    marginTop: 30,
   },
   name: {
     fontSize: 26,

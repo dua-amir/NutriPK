@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { formatTimePK, formatHeaderDatePK } from './utils/dateUtils';
 import {
   View,
   Text,
@@ -55,16 +56,15 @@ export default function Home({ navigation }) {
   const [greeting, setGreeting] = useState('');
   useEffect(() => {
     try {
-      // Calculate current time in Asia/Karachi by using Intl with timeZone
-      const now = new Date();
-      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Karachi', hour: 'numeric', hour12: false }).formatToParts(now);
+      const nowPK = new Date();
+      // reuse formatTimePK to compute hour in PK time
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Karachi', hour: 'numeric', hour12: false }).formatToParts(nowPK);
       const hourPart = parts.find(p => p.type === 'hour');
-      const hour = hourPart ? parseInt(hourPart.value, 10) : now.getUTCHours() + 5; // fallback offset
+      const hour = hourPart ? parseInt(hourPart.value, 10) : new Date().getUTCHours() + 5;
       if (hour >= 5 && hour < 12) setGreeting('Good Morning');
       else if (hour >= 12 && hour < 17) setGreeting('Good Afternoon');
       else setGreeting('Good Evening');
     } catch (e) {
-      // fallback
       const localHour = new Date().getHours();
       if (localHour >= 5 && localHour < 12) setGreeting('Good Morning');
       else if (localHour >= 12 && localHour < 17) setGreeting('Good Afternoon');
@@ -366,26 +366,8 @@ function randomQuote() {
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
 
-function formatTime(t) {
-  try {
-    if (!t) return '';
-    const d = typeof t === 'number' ? new Date(t) : new Date(t);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
-}
-
-function formatHeaderDate() {
-  try {
-    const now = new Date();
-    // show like: March 28 2022 or 'Nov 5'
-    const opts = { timeZone: 'Asia/Karachi', month: 'short', day: 'numeric', year: 'numeric' };
-    return new Intl.DateTimeFormat('en-US', opts).format(now);
-  } catch {
-    return new Date().toLocaleDateString();
-  }
-}
+function formatTime(t) { return formatTimePK(t); }
+function formatHeaderDate() { return formatHeaderDatePK(); }
 
 function getProfileImageSource(username) {
   // try to return a placeholder image or initials fallback

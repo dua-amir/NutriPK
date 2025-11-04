@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { parseToDateObj, formatDatePK } from './utils/dateUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Polyline, G, Text as SvgText } from 'react-native-svg';
 
 function getWeekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
-  return new Date(d.setDate(diff));
+  const d = parseToDateObj(date) || new Date();
+  // convert to PK local date
+  const pk = new Date(d.toLocaleString('en-GB', { timeZone: 'Asia/Karachi' }));
+  const day = pk.getDay();
+  const diff = pk.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
+  return new Date(pk.setDate(diff));
 }
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString();
+  return formatDatePK(dateStr);
 }
 
 export default function WeeklySummary() {

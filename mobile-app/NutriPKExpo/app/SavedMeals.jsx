@@ -4,78 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 
-function formatTime(datetime) {
-  // Return only time part in Pakistan time (UTC+5) as "h:mm AM/PM" without seconds.
-  if (!datetime) return '';
-  try {
-    const dateObj = parseToDateObj(datetime);
-    if (!dateObj) return '';
-
-    // Compute Pakistan time by adding +5 hours to absolute epoch ms.
-    const PK_OFFSET_MS = 5 * 60 * 60 * 1000; // UTC+5
-    const pkMs = dateObj.getTime() + PK_OFFSET_MS;
-    const pkDate = new Date(pkMs);
-
-    // Use UTC getters on pkDate to get the PK local components regardless of client TZ
-    let hours = pkDate.getUTCHours();
-    const minutes = pkDate.getUTCMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    if (hours === 0) hours = 12;
-    const minsStr = minutes.toString().padStart(2, '0');
-    return `${hours}:${minsStr} ${ampm}`;
-  } catch (e) {
-    return '';
-  }
-}
-
-// Helper: robustly parse various timestamp formats into a Date object.
-function parseToDateObj(datetime) {
-  if (!datetime) return null;
-  // If it's already a Date
-  if (datetime instanceof Date) return datetime;
-
-  // Normalize common cases
-  const s = String(datetime).trim();
-
-  // Case: ISO with T or with Z
-  if (s.includes('T') || /\d{4}-\d{2}-\d{2}T/.test(s)) {
-    const d = new Date(s);
-    if (!isNaN(d)) return d;
-  }
-
-  // Case: 'YYYY-MM-DD HH:MM:SS(.micro)?' (likely UTC) -> treat as UTC by appending Z
-  const ymdSpaceTime = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2}(\.\d+)?)?$/;
-  if (ymdSpaceTime.test(s)) {
-    const iso = s.replace(' ', 'T') + 'Z';
-    const d = new Date(iso);
-    if (!isNaN(d)) return d;
-  }
-
-  // Case: 'dd/mm/yyyy, HH:MM:SS' or 'dd/mm/yyyy, HH:MM'
-  if (s.includes('/')) {
-    const parts = s.split(',');
-    const datePart = parts[0].trim();
-    const timePart = parts[1] ? parts[1].trim() : '';
-    const [d, m, y] = datePart.split('/').map(Number);
-    if (d && m && y) {
-      let hours = 0, mins = 0, secs = 0;
-      if (timePart) {
-        const t = timePart.split(':').map(tk => Number(tk));
-        if (!isNaN(t[0])) hours = t[0];
-        if (!isNaN(t[1])) mins = t[1];
-        if (!isNaN(t[2])) secs = t[2];
-      }
-      const dt = new Date(y, m - 1, d, hours, mins, secs);
-      if (!isNaN(dt)) return dt;
-    }
-  }
-
-  // Fallback: try Date constructor (may treat as local)
-  const fallback = new Date(s);
-  if (!isNaN(fallback)) return fallback;
-  return null;
-}
+import { parseToDateObj, formatTimePK, formatDatePK } from './utils/dateUtils';
 
 function getDayLabel(dateStr) {
   const today = new Date();
@@ -150,21 +79,16 @@ export default function SavedMeals() {
       // group by date (dd/mm/yyyy) and sort
       const groups = {};
       meals.forEach(meal => {
-        // parse to Date and then derive PK date string to ensure consistent grouping
-        const dt = parseToDateObj(meal.timestamp);
-        let dateStr = '';
-        if (dt) {
-          try {
-            // compute date in Asia/Karachi timezone by using toLocaleString and extracting date parts
-            const pk = new Date(dt.toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
-            const d = pk.getDate().toString().padStart(2, '0');
-            const m = (pk.getMonth() + 1).toString().padStart(2, '0');
-            const y = pk.getFullYear();
-            dateStr = `${d}/${m}/${y}`;
-          } catch (e) {
-            dateStr = null;
-          }
-        }
+              // parse to Date and then derive PK date string to ensure consistent grouping
+              const dt = parseToDateObj(meal.timestamp);
+              let dateStr = '';
+              if (dt) {
+                try {
+                  dateStr = formatDatePK(dt);
+                } catch (e) {
+                  dateStr = null;
+                }
+              }
         if (!dateStr) {
           // Fallback: try to extract a date-like substring, else tag as Unknown
           if (meal.timestamp && typeof meal.timestamp === 'string') {
@@ -250,7 +174,7 @@ export default function SavedMeals() {
                   />
                   <View style={styles.cardContent}>
                     <Text style={styles.mealName}>{meal.name}</Text>
-                    <Text style={styles.timestamp}>{formatTime(meal.timestamp)}</Text>
+                    <Text style={styles.timestamp}>{formatTimePK(meal.timestamp)}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <TouchableOpacity style={styles.detailsBtn} onPress={() => router.push({ pathname: '/MealDetails', params: { meal: JSON.stringify(meal) } })}>
                         <Text style={styles.detailsText}>View Details</Text>
