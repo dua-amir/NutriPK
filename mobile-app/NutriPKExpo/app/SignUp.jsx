@@ -45,18 +45,28 @@ export default function Signup() {
       setError("Passwords do not match.");
       return;
     }
-    // Strong password check
-    const strongRegex = /^(?=.[a-z])(?=.[A-Z])(?=.\d)(?=.[^A-Za-z0-9]).{8,}$/;
+  // Strong password check
+  // Original regex had missing escapes after lookahead anchors; use a well-tested pattern
+  // Requires at least one lowercase, one uppercase, one digit, one special char, min length 8
+  const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
     if (!strongRegex.test(password)) {
       setError("Password must be at least 8 characters, include a number, a symbol, a lowercase and an uppercase letter.");
       return;
     }
     // Check password length (bcrypt limit is 72 bytes)
-    const encoder = new TextEncoder();
-    if (encoder.encode(password).length > 72) {
-      setError("Password is too long. Please use a shorter password.");
-      return;
+    // TextEncoder may not be available in some RN environments; guard with a fallback
+    try {
+      const encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+      if (encoder && encoder.encode(password).length > 72) {
+        setError("Password is too long. Please use a shorter password.");
+        return;
+      }
+    } catch (e) {
+      // If TextEncoder isn't available, skip the byte-length check (rare on modern RN runtimes)
+      // This is a safe degradation for client-side only; server still enforces limits.
+      console.warn('TextEncoder not available, skipping byte-length check for password');
     }
+
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/signup`, {
