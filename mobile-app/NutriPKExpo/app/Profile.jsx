@@ -28,7 +28,7 @@ export default function Profile() {
   const [imageBroken, setImageBroken] = useState(false);
   const [bmi, setBMI] = useState("-");
   const [editing, setEditing] = useState(false);
-  const BACKEND_BASE = 'http://127.0.0.1:8000';
+  const BACKEND_BASE = 'http://192.168.1.8:8000';
 
   useEffect(() => {
     const fetchProfile = async () => {

@@ -39,7 +39,7 @@ export default function Login() {
       const params = new URLSearchParams();
       params.append("username", email);
       params.append("password", password);
-      const response = await fetch("http://127.0.0.1:8000/api/user/token", {
+      const response = await fetch("http://192.168.1.8:8000/api/user/token", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",

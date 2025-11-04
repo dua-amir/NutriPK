@@ -31,7 +31,7 @@ export default function WeeklySummary() {
       return;
     }
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/user/weekly-summary?email=${encodeURIComponent(email)}`);
+      const response = await fetch(`http://192.168.1.8:8000/api/user/weekly-summary?email=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Failed to fetch summary');
       const data = await response.json();
       setSummary(data.summary || []);

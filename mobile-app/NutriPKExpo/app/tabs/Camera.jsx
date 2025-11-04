@@ -82,7 +82,7 @@ export default function Home() {
 
       // If you're running on the Android emulator, replace localhost with 10.0.2.2
       // If on a physical device, use your PC's LAN IP (e.g., http://192.168.x.y:8000)
-      const endpoint = 'http://localhost:8000/api/dish/predict/';
+      const endpoint = 'http://192.168.1.8:8000/api/dish/predict/';
 
       const response = await fetch(endpoint, {
         method: 'POST',
