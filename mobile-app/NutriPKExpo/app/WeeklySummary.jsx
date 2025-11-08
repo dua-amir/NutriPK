@@ -75,7 +75,7 @@ export default function WeeklySummary() {
     }).join(' ');
   };
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom:40}}>
       <Text style={styles.title}>Weekly Summary</Text>
       {loading ? (
         <Text style={styles.empty}>Loading...</Text>
@@ -132,10 +132,33 @@ export default function WeeklySummary() {
               <View style={[styles.legendDot,{backgroundColor:'#FFC107'}]} /><Text style={styles.legendLabel}>Fats</Text>
             </View>
           </View>
+            {/* Water intake graph */}
+            <View style={[styles.card, {marginTop: 8}]}>
+              <Text style={[styles.totalsTitle, {fontSize:18, marginBottom:8}]}>Water Intake (glasses/day)</Text>
+              <Svg width={320} height={160}>
+                {summary.map((d,i) => {
+                  // use the day label from backend so ordering matches (should be Mon..Sun)
+                  const label = (d.day || '').split(' ')[0];
+                  const x = 40 + i * 36;
+                  const max = 8;
+                  const h = Math.round(((d.waterGlasses || 0) / max) * 90);
+                  const yBase = 110;
+                  const yTop = yBase - h;
+                  return (
+                    <React.Fragment key={i}>
+                      <Polyline points={`${x},${yBase} ${x},${yBase-92}`} stroke="#F1F5F9" strokeWidth={16} strokeLinecap="round" />
+                      <Polyline points={`${x},${yBase} ${x},${yTop}`} stroke={d.waterGlasses ? '#06B58F' : '#CBD5E1'} strokeWidth={16} strokeLinecap="round" />
+                      <SvgText x={x} y={yTop - 8} fontSize="12" fill="#064E3B" textAnchor="middle">{d.waterGlasses || 0}</SvgText>
+                      <SvgText x={x} y={yBase + 18} fontSize="10" fill="#6B7280" textAnchor="middle">{label}</SvgText>
+                    </React.Fragment>
+                  );
+                })}
+              </Svg>
+            </View>
           {/* ...no daily breakdown cards... */}
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 

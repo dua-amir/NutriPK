@@ -27,7 +27,7 @@ export default function AccountCreate() {
         </View>
 
         <View style={styles.buttonsArea}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             activeOpacity={0.85}
             style={styles.socialBtn}
             onPress={() => router.replace("/SignUp")}
@@ -37,7 +37,7 @@ export default function AccountCreate() {
               style={styles.icon}
             />
             <Text style={styles.socialText}>Continue with Google</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
          <TouchableOpacity
             style={styles.primaryBtn}

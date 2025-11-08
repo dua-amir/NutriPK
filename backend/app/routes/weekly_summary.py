@@ -66,6 +66,16 @@ def weekly_summary(email: str = Query(...), db: Database = Depends(get_db)):
                     total_carbs += float(v) if v else 0
                 if "fat" in lk:
                     total_fats += float(v) if v else 0
+        # water for the day (stored with date string YYYY-MM-DD in water collection)
+        try:
+            day_pk = day_start.astimezone(pytz.utc) if day_start.tzinfo else pytz.utc.localize(day_start)
+        except Exception:
+            day_pk = day_start
+        # compute PK local date string
+        pk_date = (day_start + timedelta(0)).strftime('%Y-%m-%d')
+        water_doc = db.water.find_one({"email": email, "date": pk_date}) if hasattr(db, 'water') else None
+        water_count = water_doc.get('glasses') if water_doc else 0
+
         summary.append({
             "day": day_start.strftime("%a %d %b"),
             "count": len(day_meals),
@@ -73,6 +83,7 @@ def weekly_summary(email: str = Query(...), db: Database = Depends(get_db)):
             "totalProtein": total_protein,
             "totalCarbs": total_carbs,
             "totalFats": total_fats,
+            "waterGlasses": int(water_count or 0),
         })
     # Totals for the week
     totals = {
@@ -81,6 +92,7 @@ def weekly_summary(email: str = Query(...), db: Database = Depends(get_db)):
         "carbs": sum(d["totalCarbs"] for d in summary),
         "fats": sum(d["totalFats"] for d in summary),
         "meals": sum(d["count"] for d in summary),
+        "waterGlasses": sum(d.get("waterGlasses", 0) for d in summary),
     }
     print(f"DEBUG: Weekly summary: {summary}")
     print(f"DEBUG: Weekly totals: {totals}")

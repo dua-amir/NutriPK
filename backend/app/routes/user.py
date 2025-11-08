@@ -79,6 +79,42 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
     return user
 
 
+@router.get("/water")
+async def get_water(email: str):
+    # return water records for given email (all or by date query param optional)
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+    db = client.nutripk
+    docs = []
+    async for d in db.water.find({"email": email}):
+        # convert ObjectId to str if present
+        d["_id"] = str(d.get("_id"))
+        docs.append(d)
+    return {"water": docs}
+
+
+@router.post("/water")
+async def set_water(email: str = Form(...), date: str = Form(...), glasses: int = Form(...)):
+    # upsert water record for date (date expected in YYYY-MM-DD)
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+    db = client.nutripk
+    await db.water.update_one({"email": email, "date": date}, {"$set": {"glasses": int(glasses)}}, upsert=True)
+    return {"status": "ok", "email": email, "date": date, "glasses": int(glasses)}
+
+
+@router.get("/meals")
+async def get_meals_for_date(email: str, date: str = None):
+    # date optional; if provided filter meals by day (PK timezone assumed by weekly_summary)
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+    db = client.nutripk
+    query = {"email": email}
+    results = []
+    async for m in db.meals.find(query).sort([('timestamp', -1)]).limit(100):
+        m['_id'] = str(m.get('_id'))
+        # include nutrients and image
+        results.append(m)
+    return {"meals": results}
+
+
 @router.post("/signup", response_model=UserProfile)
 async def signup(user: UserCreate):
     existing = await get_user_by_email(user.email)
@@ -177,6 +213,32 @@ async def update_profile(
     profile_image_file = form.get('profile_image_file')
     # Also support profile_image_data (data URI base64) from native clients
     profile_image_data = form.get('profile_image_data')
+    # optional target_calories field
+    try:
+        tc = form.get('target_calories')
+        if tc is not None:
+            update_data['target_calories'] = int(tc)
+    except Exception:
+        pass
+    # optional macronutrient targets
+    try:
+        tp = form.get('target_protein')
+        if tp is not None:
+            update_data['target_protein'] = float(tp)
+    except Exception:
+        pass
+    try:
+        tc2 = form.get('target_carbs')
+        if tc2 is not None:
+            update_data['target_carbs'] = float(tc2)
+    except Exception:
+        pass
+    try:
+        tf = form.get('target_fats')
+        if tf is not None:
+            update_data['target_fats'] = float(tf)
+    except Exception:
+        pass
     # If field is an UploadFile-like object (Starlette UploadFile), it will be instance of UploadFile or have filename/read
     try:
         from fastapi import UploadFile as _UploadFile
@@ -250,6 +312,25 @@ async def update_profile(
     updated_user = await get_user_by_email(email)
     updated_user.pop("password")
     return UserProfile(**updated_user)
+
+
+
+@router.get("/profile-public")
+async def get_profile_public(email: str):
+    user = await get_user_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # return only public fields without requiring auth
+    public = {
+        "email": user.get("email"),
+        "username": user.get("username"),
+        "profile_image_url": user.get("profile_image_url"),
+        "target_calories": user.get("target_calories", None),
+        "target_protein": user.get("target_protein", None),
+        "target_carbs": user.get("target_carbs", None),
+        "target_fats": user.get("target_fats", None),
+    }
+    return public
 
 
 

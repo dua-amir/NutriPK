@@ -10,10 +10,31 @@ export function parseToDateObj(datetime) {
   if (!datetime) return null;
   if (datetime instanceof Date) return datetime;
   const s = String(datetime).trim();
+  // handle pure numeric epoch timestamps (seconds or milliseconds)
+  if (/^\d+$/.test(s)) {
+    try {
+      const n = Number(s);
+      // if it's likely in seconds (10 digits) convert to ms
+      const d = s.length > 12 ? new Date(n) : new Date(n * 1000);
+      if (!isNaN(d)) return d;
+    } catch (e) {
+      // fallthrough to other parsers
+    }
+  }
   // ISO-like
   if (/\d{4}-\d{2}-\d{2}T/.test(s) || s.includes('T')) {
-    const d = new Date(s);
-    if (!isNaN(d)) return d;
+    // If ISO-like but missing timezone offset, treat as UTC by appending 'Z'
+    try {
+      let s2 = s;
+      // if no Z or +hh:mm or +hhmm timezone part, append Z
+      if (!/[zZ]$/.test(s) && !/[+\-]\d{2}:?\d{2}$/.test(s)) {
+        s2 = s + 'Z';
+      }
+      const d = new Date(s2);
+      if (!isNaN(d)) return d;
+    } catch (e) {
+      // fallthrough
+    }
   }
   // 'YYYY-MM-DD HH:MM:SS' -> treat as UTC
   const ymdSpaceTime = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2}(\.\d+)?)?$/;
@@ -46,7 +67,7 @@ export function parseToDateObj(datetime) {
   return null;
 }
 
-function toPKDate(dateObj) {
+export function toPKDate(dateObj) {
   // Convert a Date object to a Date representing the same wall-clock time in Asia/Karachi
   // We'll use toLocaleString with timeZone and then construct a new Date from that string.
   if (!dateObj) return null;
@@ -117,4 +138,21 @@ export function formatDateTimePK(value) {
   } catch (e) {
     return `${formatDatePK(pk)} ${formatTimePK(pk)}`;
   }
+}
+
+export function toISODate(d) {
+  const dt = (d instanceof Date) ? d : parseToDateObj(d);
+  if (!dt) return '';
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function addDaysISO(isoDate, delta) {
+  try {
+    const base = parseToDateObj(isoDate) || new Date(isoDate);
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + Number(delta));
+    return toISODate(d);
+  } catch (e) { return isoDate; }
 }

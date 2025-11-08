@@ -29,6 +29,11 @@ export default function Profile() {
   const [imageBroken, setImageBroken] = useState(false);
   const [bmi, setBMI] = useState("-");
   const [editing, setEditing] = useState(false);
+  const [showTargets, setShowTargets] = useState(false);
+  const [targetCalories, setTargetCalories] = useState('');
+  const [targetProtein, setTargetProtein] = useState('');
+  const [targetCarbs, setTargetCarbs] = useState('');
+  const [targetFats, setTargetFats] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -75,6 +80,10 @@ export default function Profile() {
         setWeight(data.weight ? String(data.weight) : "");
         setProfileImage(data.profile_image_url ? (data.profile_image_url.startsWith('http') ? data.profile_image_url : `${BACKEND_BASE}${data.profile_image_url}`) : null);
         setBMI(getBMI(data.weight, data.height));
+  setTargetCalories(data.target_calories ? String(data.target_calories) : '');
+  setTargetProtein(data.target_protein ? String(data.target_protein) : '');
+  setTargetCarbs(data.target_carbs ? String(data.target_carbs) : '');
+  setTargetFats(data.target_fats ? String(data.target_fats) : '');
       } catch (err) {
         setError("Network error. Please try again.");
       } finally {
@@ -118,6 +127,10 @@ export default function Profile() {
       formData.append('weight', weight ? weight : '0');
   // include username when updating profile (backend will ignore if not supported)
   formData.append('username', username ? username : '');
+  formData.append('target_calories', targetCalories || '');
+  formData.append('target_protein', targetProtein || '');
+  formData.append('target_carbs', targetCarbs || '');
+  formData.append('target_fats', targetFats || '');
 
       // Attach profile image correctly for web/native
       if (profileImage) {
@@ -180,6 +193,11 @@ export default function Profile() {
               setProfileImage(imgUrl);
               setImageBroken(false);
             }
+            // update targets from response if present
+            setTargetCalories(data.target_calories ? String(data.target_calories) : '');
+            setTargetProtein(data.target_protein ? String(data.target_protein) : '');
+            setTargetCarbs(data.target_carbs ? String(data.target_carbs) : '');
+            setTargetFats(data.target_fats ? String(data.target_fats) : '');
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -277,6 +295,22 @@ export default function Profile() {
 
               <Text style={styles.label}>BMI</Text>
               <Text style={styles.bmiText}>{bmi} {bmi !== '-' && `(${getBMICategory(bmi)})`}</Text>
+
+                <TouchableOpacity onPress={() => setShowTargets(s => !s)} style={{marginTop:8}}>
+                  <Text style={[styles.label, {color:'#0e4f11ff'}]}>Target Nutrients (tap to view/edit)</Text>
+                </TouchableOpacity>
+                {showTargets && (
+                  <View style={{width:'100%', backgroundColor:'#F5FFF6', padding:10, borderRadius:10, marginTop:8}}>
+                    <Text style={{fontWeight:'700'}}>Calories</Text>
+                    <TextInput style={styles.input} value={targetCalories} onChangeText={setTargetCalories} keyboardType='numeric' editable={editing} />
+                    <Text style={{fontWeight:'700', marginTop:6}}>Protein (g)</Text>
+                    <TextInput style={styles.input} value={targetProtein} onChangeText={setTargetProtein} keyboardType='numeric' editable={editing} />
+                    <Text style={{fontWeight:'700', marginTop:6}}>Carbs (g)</Text>
+                    <TextInput style={styles.input} value={targetCarbs} onChangeText={setTargetCarbs} keyboardType='numeric' editable={editing} />
+                    <Text style={{fontWeight:'700', marginTop:6}}>Fats (g)</Text>
+                    <TextInput style={styles.input} value={targetFats} onChangeText={setTargetFats} keyboardType='numeric' editable={editing} />
+                  </View>
+                )}
 
               <View style={styles.buttonsRow}>
                 {editing ? (

@@ -276,7 +276,9 @@ export default function Home() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: '#FFF3EC' }}
-      contentContainerStyle={[styles.container, { paddingBottom: 100 }]}
+      // avoid using styles.container here because it sets flex:1 on the content container
+      // which prevents ScrollView from scrolling on small devices. Use explicit padding instead.
+      contentContainerStyle={{ paddingBottom: 100, padding: 20, paddingTop: 40 }}
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>Add Image for Food Recognition</Text>
