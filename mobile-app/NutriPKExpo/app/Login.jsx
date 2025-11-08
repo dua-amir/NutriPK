@@ -19,7 +19,6 @@ export default function Login() {
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [rememberMe, setRememberMe] = React.useState(false);
-  const [agree, setAgree] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -130,13 +129,6 @@ export default function Login() {
         <TouchableOpacity style={styles.forgotRight} onPress={() => router.push("/forgot-password")}>
           <Text style={styles.forgotText}>Forgot password?</Text>
         </TouchableOpacity>
-
-        <View style={styles.agreeRow}>
-          <TouchableOpacity onPress={() => setAgree(prev=>!prev)} style={styles.agreeCheckbox}>
-            {agree && <Ionicons name="checkmark" size={16} color="#0e4f11ff" />}
-          </TouchableOpacity>
-          <Text style={styles.agreeText}>I agree to Nutrio <Text style={styles.termsText} onPress={() => router.push('/screens/TermsAndConditions')}>Terms & Conditions</Text></Text>
-        </View>
       </View>
 
       <View style={styles.centerSignupPrompt}>
@@ -144,9 +136,9 @@ export default function Login() {
       </View>
 
       <TouchableOpacity
-        style={[styles.signupButton, (!agree || loading) && styles.loginButtonDisabled]}
+        style={[styles.signupButton, loading && styles.loginButtonDisabled]}
         onPress={handleLogin}
-        disabled={!agree || loading}
+        disabled={loading}
       >
         <Text style={styles.signupButtonText}>{loading? 'Please wait...' : 'Sign In'}</Text>
       </TouchableOpacity>
