@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { parseToDateObj, formatDatePK } from './utils/dateUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Polyline, G, Text as SvgText } from 'react-native-svg';
+import { BACKEND_BASE } from './config';
 
 function getWeekStart(date) {
   const d = parseToDateObj(date) || new Date();
@@ -33,7 +34,7 @@ export default function WeeklySummary() {
       return;
     }
     try {
-      const response = await fetch(`http://192.168.1.8:8000/api/user/weekly-summary?email=${encodeURIComponent(email)}`);
+      const response = await fetch(`${BACKEND_BASE}/api/user/weekly-summary?email=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Failed to fetch summary');
       const data = await response.json();
       setSummary(data.summary || []);

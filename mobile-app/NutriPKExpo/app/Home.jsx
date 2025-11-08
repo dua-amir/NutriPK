@@ -13,6 +13,7 @@ import {
   Easing,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { BACKEND_BASE } from './config';
 import { MaterialIcons, Entypo } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
 
@@ -100,7 +101,7 @@ export default function Home({ navigation }) {
   }, []);
 
   // Backend base used to prefix relative static paths returned by backend
-  const BACKEND_BASE = 'http://192.168.1.8:8000';
+  // imported from central config so it can be changed per laptop
 
   function resolveMealImage(img) {
     if (!img) return null;

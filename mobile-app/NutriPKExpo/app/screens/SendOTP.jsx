@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { BACKEND_BASE } from './config';
 
 const THEME = '#FF7F32';
 
@@ -65,7 +66,7 @@ export default function SendOTP() {
     }
     setLoading(true);
     try {
-      const response = await fetch('http://192.168.1.8:8000/api/user/verify-otp', {
+        const response = await fetch(`${BACKEND_BASE}/api/user/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
@@ -95,7 +96,7 @@ export default function SendOTP() {
     setInfo('');
     setLoading(true);
     try {
-      const response = await fetch('http://192.168.1.8:8000/api/user/send-otp', {
+  const response = await fetch(`${BACKEND_BASE}/api/user/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

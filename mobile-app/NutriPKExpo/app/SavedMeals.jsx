@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 
 import { parseToDateObj, formatTimePK, formatDatePK } from './utils/dateUtils';
+import { BACKEND_BASE } from './config';
 
 function getDayLabel(dateStr) {
   const today = new Date();
@@ -22,13 +23,12 @@ export default function SavedMeals() {
   const [brokenImages, setBrokenImages] = useState({});
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const BACKEND_BASE = 'http://192.168.1.8:8000';
 
   // Delete meal handler (improved)
   const handleDeleteMeal = async (meal) => {
     if (!meal._id) return;
     try {
-      const res = await fetch(`http://192.168.1.8:8000/api/user/delete-meal?meal_id=${meal._id}`, {
+  const res = await fetch(`${BACKEND_BASE}/api/user/delete-meal?meal_id=${meal._id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -70,7 +70,7 @@ export default function SavedMeals() {
         setLoading(false);
         return;
       }
-      const res = await fetch(`http://192.168.1.8:8000/api/user/all-meals?email=${encodeURIComponent(email)}`);
+  const res = await fetch(`${BACKEND_BASE}/api/user/all-meals?email=${encodeURIComponent(email)}`);
       if (!res.ok) throw new Error('Failed to fetch meals');
       const data = await res.json();
       const meals = data.meals || [];

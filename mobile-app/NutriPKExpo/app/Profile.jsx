@@ -13,6 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { useRouter } from "expo-router";
+import { BACKEND_BASE } from './config';
 
 export default function Profile() {
   const router = useRouter();
@@ -28,7 +29,6 @@ export default function Profile() {
   const [imageBroken, setImageBroken] = useState(false);
   const [bmi, setBMI] = useState("-");
   const [editing, setEditing] = useState(false);
-  const BACKEND_BASE = 'http://192.168.1.8:8000';
 
   useEffect(() => {
     const fetchProfile = async () => {

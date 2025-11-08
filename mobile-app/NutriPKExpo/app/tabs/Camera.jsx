@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from "expo-router";
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { BACKEND_BASE } from '../config';
 
 export default function Home() {
   const router = useRouter();
@@ -46,8 +47,6 @@ export default function Home() {
       setError("Error accessing camera");
     }
   };
-
-  const BACKEND_BASE = 'http://192.168.1.8:8000';
 
   const uploadAndPredict = async () => {
     if (!image) return;

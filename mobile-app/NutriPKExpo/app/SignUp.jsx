@@ -13,7 +13,8 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
 // Change this to your PC's local IP address
-const API_BASE_URL = "http://192.168.1.8:8000"; // Use localhost for local development
+import { BACKEND_BASE } from './config';
+const API_BASE_URL = BACKEND_BASE; // central config
 
 export default function Signup() {
   const router = useRouter();

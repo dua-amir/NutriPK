@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { BACKEND_BASE } from './config';
 
 export default function ResetPassword() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function ResetPassword() {
     }
     setLoading(true);
     try {
-      const response = await fetch("http://192.168.1.8:8000/api/user/reset-password", {
+        const response = await fetch(`${BACKEND_BASE}/api/user/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, new_password: newPassword }),

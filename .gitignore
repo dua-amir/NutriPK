@@ -1,4 +1,16 @@
 */venv/
 /dataset/
 */node_modules/
-*/__pycache__/*
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+
+# Byte-compiled / optimized / DLL files
+*.pyd
+
+# Distribution / packaging
+build/
+dist/

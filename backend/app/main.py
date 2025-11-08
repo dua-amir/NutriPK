@@ -7,16 +7,27 @@ import os
 app = FastAPI()
 
 # Enable CORS for frontend-backend communication (allow common dev origins)
+def parse_origins(env_var: str):
+    raw = os.getenv(env_var, "")
+    if not raw:
+        return []
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+# Allow origins are read from the ALLOWED_ORIGINS env var (comma-separated).
+# This lets each developer set their own machine IPs without changing code.
+allowed = parse_origins("ALLOWED_ORIGINS")
+if not allowed:
+    # fallback dev origins
+    allowed = [
+        "http://localhost:8081",
+        "http://localhost:19006",
+        "http://localhost:19000",
+        "http://127.0.0.1:19000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8081", 
-        "http://localhost:19006", 
-        "http://localhost:19000", 
-        "http://127.0.0.1:19000",
-        "http://192.168.1.8:19000",
-        "http://192.168.1.8:19006",
-        ],
+    allow_origins=allowed,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -2,12 +2,12 @@ import React from "react";
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from "react-native";
 import { formatDateTimePK } from './utils/dateUtils';
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { BACKEND_BASE } from './config';
 
 export default function MealDetails() {
   const { meal } = useLocalSearchParams();
   const router = useRouter();
   const mealObj = meal ? JSON.parse(meal) : null;
-  const BACKEND_BASE = 'http://192.168.1.8:8000';
 
   if (!mealObj) return <View style={styles.container}><Text>No meal data found.</Text></View>;
 

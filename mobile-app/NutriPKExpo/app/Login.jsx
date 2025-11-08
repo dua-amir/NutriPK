@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { BACKEND_BASE } from './config';
 
 export default function Login() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function Login() {
       const params = new URLSearchParams();
       params.append("username", email);
       params.append("password", password);
-      const response = await fetch("http://192.168.1.8:8000/api/user/token", {
+      const response = await fetch(`${BACKEND_BASE}/api/user/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",

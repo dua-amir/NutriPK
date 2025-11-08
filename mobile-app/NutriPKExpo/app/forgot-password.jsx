@@ -10,13 +10,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { BACKEND_BASE } from './config';
 
 export default function ForgotPassword() {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState("");
-  const BACKEND_BASE = 'http://192.168.1.8:8000';
 
   const handleReset = async () => {
     setError("");
