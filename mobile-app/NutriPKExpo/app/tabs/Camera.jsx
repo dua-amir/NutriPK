@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from "expo-router";
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
 export default function Home() {
@@ -100,6 +100,29 @@ export default function Home() {
 
       const data = await response.json();
       console.log('Prediction:', data);
+
+      // If top prediction confidence is below 50%, tell the user the dish was not recognized
+      const topConfidence = data?.top_predictions?.[0]?.confidence;
+      if (typeof topConfidence === 'number' && topConfidence < 0.5) {
+        // show an alert and reset camera UI on OK
+        if (Platform.OS === 'web') {
+          // simple browser alert
+          alert('Dish not recognized. Please try a different image.');
+          setImage(null);
+          setPredictions(null);
+        } else {
+          Alert.alert(
+            'Dish not recognized',
+            'Please try a different image',
+            [
+              { text: 'OK', onPress: () => { setImage(null); setPredictions(null); } }
+            ]
+          );
+        }
+        return;
+      }
+
+      // Accept prediction and show results (confidence intentionally hidden in UI)
       setPredictions(data);
     } catch (err) {
       console.error('Upload/predict error:', err);
@@ -184,6 +207,21 @@ export default function Home() {
 
   const formatConfidence = (confidence) => {
     return (confidence * 100).toFixed(1) + "%";
+  };
+
+  // Handler for View Nutrients button: open modal when nutrients available,
+  // otherwise show a friendly alert so the user knows why nothing opens.
+  const onViewNutrientsPress = () => {
+    if (predictions && predictions.nutrients) {
+      setShowNutrients(true);
+    } else {
+      const msg = 'Nutrient data is not available for this dish.';
+      if (Platform.OS === 'web') {
+        alert(msg);
+      } else {
+        Alert.alert('Nutrients unavailable', msg, [{ text: 'OK' }]);
+      }
+    }
   };
 
   // Clear camera state whenever screen is focused so it appears refreshed
@@ -295,16 +333,15 @@ export default function Home() {
             const pred = predictions.top_predictions[0];
             return (
               <View style={[styles.predictionRow, styles.topPrediction]}>
-                <Text style={[styles.dishName, styles.topDishName]}>🏆 {pred.dish.replace(/_/g, " ")}</Text>
-                <Text style={[styles.confidence, styles.topConfidence]}>{formatConfidence(pred.confidence)}</Text>
+                <Text style={[styles.dishName, styles.topDishName]}> {pred.dish.replace(/_/g, " ")}</Text>
+                {/* Confidence intentionally hidden when dish is accepted (>=50%) */}
               </View>
             );
           })()}
           {/* Always show the button but disable it when nutrients are absent */}
           <TouchableOpacity
             style={[styles.predictButton, { marginTop: 12 }, !predictions.nutrients && styles.predictButtonDisabledVisible]}
-            onPress={() => predictions.nutrients ? setShowNutrients(true) : null}
-            disabled={!predictions.nutrients}
+            onPress={onViewNutrientsPress}
           >
             <Text style={styles.predictButtonText}>📋 View Nutrients</Text>
           </TouchableOpacity>
