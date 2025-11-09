@@ -3,7 +3,8 @@ import { useFocusEffect } from "expo-router";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { parseToDateObj, formatDatePK } from './utils/dateUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Svg, { Polyline, G, Text as SvgText } from 'react-native-svg';
+import { subscribe } from './utils/events';
+import Svg, { Polyline, G, Text as SvgText, Rect, Circle as SvgCircle, Line } from 'react-native-svg';
 import { BACKEND_BASE } from './config';
 
 function getWeekStart(date) {
@@ -48,6 +49,9 @@ export default function WeeklySummary() {
 
   useEffect(() => {
     fetchSummary();
+    // subscribe to updates when water is changed elsewhere
+    const unsub = subscribe('weeklyUpdated', () => fetchSummary());
+    return () => unsub();
   }, []);
 
   useFocusEffect(
@@ -57,20 +61,34 @@ export default function WeeklySummary() {
   );
 
   // Prepare graph data
-  const graphHeight = 120;
+  const graphHeight = 140;
   const graphWidth = 320;
-  const padding = 30;
+  const padding = 36; // left/right padding for y labels
   const days = summary.length;
+  // reorder summary to Mon..Sun based on backend day labels (which look like 'Mon 03 Nov')
+  const order = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const summaryByAbb = {};
+  summary.forEach(d => {
+    const abb = (d.day || '').split(' ')[0];
+    if (abb) summaryByAbb[abb] = d;
+  });
+  const orderedSummary = order.map(abb => summaryByAbb[abb] || { day: `${abb}`, count:0, totalCalories:0, totalProtein:0, totalCarbs:0, totalFats:0, waterGlasses:0 });
+  if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DEV] orderedSummary', orderedSummary.map(d=>({day:d.day,water:d.waterGlasses})));
   // Get max for scaling
-  const maxVal = Math.max(
-    ...summary.map(d => Math.max(d.totalCalories, d.totalProtein, d.totalCarbs, d.totalFats)),
-    1
-  );
+  const maxCal = Math.max(...orderedSummary.map(d => d.totalCalories), 1);
+  const maxMacro = Math.max(...orderedSummary.map(d => Math.max(d.totalProtein, d.totalCarbs, d.totalFats)), 1);
   // Helper to get polyline points
-  const getPoints = (key) => {
-    return summary.map((d, i) => {
-      const x = padding + (i * (graphWidth - 2 * padding) / (days - 1));
-      const y = graphHeight - padding - ((d[key] / maxVal) * (graphHeight - 2 * padding));
+  const getPointsCal = (key) => {
+    return orderedSummary.map((d, i) => {
+      const x = padding + (i * (graphWidth - 2 * padding) / (order.length - 1));
+      const y = graphHeight - padding - ((d[key] / maxCal) * (graphHeight - 2 * padding));
+      return `${x},${y}`;
+    }).join(' ');
+  };
+  const getPointsMacro = (key) => {
+    return orderedSummary.map((d, i) => {
+      const x = padding + (i * (graphWidth - 2 * padding) / (order.length - 1));
+      const y = graphHeight - padding - ((d[key] / maxMacro) * (graphHeight - 2 * padding));
       return `${x},${y}`;
     }).join(' ');
   };
@@ -93,30 +111,50 @@ export default function WeeklySummary() {
             <View style={styles.totalsRow}><Text style={styles.totalsKey}>Fats</Text><Text style={[styles.totalsValue,{color:'#FFC107'}]}>{totals.fats}g</Text></View>
           </View>
           {/* Graph */}
-          <View style={styles.graphBox}>
+          <View style={[styles.graphBox, {backgroundColor: '#fff', paddingVertical: 14}]}> 
+            <Text style={{fontSize:16, fontWeight:'700', color:'#0e4f11ff', alignSelf:'flex-start', marginLeft:12, marginBottom:6}}>Nutrients Trend</Text>
             <Svg height={graphHeight} width={graphWidth}>
               {/* Axes */}
               <G>
                 <Polyline points={`${padding},${graphHeight-padding} ${graphWidth-padding},${graphHeight-padding}`} stroke="#bbb" strokeWidth="2" />
                 <Polyline points={`${padding},${padding} ${padding},${graphHeight-padding}`} stroke="#bbb" strokeWidth="2" />
               </G>
-              {/* Calories - Red */}
-              <Polyline points={getPoints('totalCalories')} stroke="#FF6F61" strokeWidth="3" fill="none" />
-              {/* Protein - Green */}
-              <Polyline points={getPoints('totalProtein')} stroke="#4E944F" strokeWidth="3" fill="none" />
-              {/* Carbs - Blue */}
-              <Polyline points={getPoints('totalCarbs')} stroke="#2196F3" strokeWidth="3" fill="none" />
-              {/* Fats - Yellow */}
-              <Polyline points={getPoints('totalFats')} stroke="#FFC107" strokeWidth="3" fill="none" />
-              {/* Day labels */}
-              {summary.map((d, i) => {
-                // map index to Mon..Sun labels; assume summary[0] is earliest (Mon)
-                const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-                const label = labels[i] || `Day ${i+1}`;
+              {/* Gridlines + Y labels */}
+              {/* Calorie gridlines + left labels (calories scale) */}
+              {Array.from({length:4}).map((_,gi)=>{
+                const gy = padding + gi * ((graphHeight - 2*padding)/3);
+                const val = Math.round(maxCal * (1 - (gi/3)));
+                return (
+                  <G key={'g'+gi}>
+                    <Line x1={padding} y1={gy} x2={graphWidth - padding} y2={gy} stroke="#F1F5F9" strokeWidth="1" />
+                    <SvgText x={padding - 8} y={gy+4} fontSize="10" fill="#9CA3AF" textAnchor="end">{val}</SvgText>
+                  </G>
+                );
+              })}
+              {/* Calories - Red (left scale) */}
+              <Polyline points={getPointsCal('totalCalories')} stroke="#FF6F61" strokeWidth="3" fill="none" />
+              {orderedSummary.map((d,i)=>{ const pts = getPointsCal('totalCalories').split(' '); const coords = pts[i]?.split(','); if(!coords) return null; return <SvgCircle key={'cC'+i} cx={coords[0]} cy={coords[1]} r={3} fill="#FF6F61" /> })}
+              {/* Protein - Green (right macro scale) */}
+              <Polyline points={getPointsMacro('totalProtein')} stroke="#4E944F" strokeWidth="3" fill="none" />
+              {orderedSummary.map((d,i)=>{ const pts = getPointsMacro('totalProtein').split(' '); const coords = pts[i]?.split(','); if(!coords) return null; return <SvgCircle key={'cP'+i} cx={coords[0]} cy={coords[1]} r={3} fill="#4E944F" /> })}
+              {/* Carbs - Blue (right macro scale) */}
+              <Polyline points={getPointsMacro('totalCarbs')} stroke="#2196F3" strokeWidth="3" fill="none" />
+              {orderedSummary.map((d,i)=>{ const pts = getPointsMacro('totalCarbs').split(' '); const coords = pts[i]?.split(','); if(!coords) return null; return <SvgCircle key={'cB'+i} cx={coords[0]} cy={coords[1]} r={3} fill="#2196F3" /> })}
+              {/* Fats - Yellow (right macro scale) */}
+              <Polyline points={getPointsMacro('totalFats')} stroke="#FFC107" strokeWidth="3" fill="none" />
+              {orderedSummary.map((d,i)=>{ const pts = getPointsMacro('totalFats').split(' '); const coords = pts[i]?.split(','); if(!coords) return null; return <SvgCircle key={'cF'+i} cx={coords[0]} cy={coords[1]} r={3} fill="#FFC107" /> })}
+              {/* Right-side macro labels (three ticks) */}
+              { [maxMacro, Math.round(maxMacro/2), 0].map((v, idx) => {
+                const y = graphHeight - padding - ((v / maxMacro) * (graphHeight - 2 * padding));
+                return <SvgText key={'r'+idx} x={graphWidth - padding + 28} y={y+4} fontSize="10" fill="#9CA3AF" textAnchor="end">{v}</SvgText>;
+              })}
+              {/* Day labels - use backend provided 'day' label (Mon DD MMM) so ordering matches */}
+              {orderedSummary.map((d, i) => {
+                const label = (d.day || '').split(' ')[0] || `D${i+1}`;
                 return (
                   <SvgText
                     key={i}
-                    x={padding + (i * (graphWidth - 2 * padding) / (days - 1))}
+                    x={padding + (i * (graphWidth - 2 * padding) / (order.length - 1))}
                     y={graphHeight - padding + 18}
                     fontSize="12"
                     fill="#888"
@@ -136,20 +174,22 @@ export default function WeeklySummary() {
             <View style={[styles.card, {marginTop: 8}]}>
               <Text style={[styles.totalsTitle, {fontSize:18, marginBottom:8}]}>Water Intake (glasses/day)</Text>
               <Svg width={320} height={160}>
-                {summary.map((d,i) => {
-                  // use the day label from backend so ordering matches (should be Mon..Sun)
+                {orderedSummary.map((d,i) => {
                   const label = (d.day || '').split(' ')[0];
-                  const x = 40 + i * 36;
+                  const x = 24 + i * 40;
                   const max = 8;
                   const h = Math.round(((d.waterGlasses || 0) / max) * 90);
-                  const yBase = 110;
+                  const yBase = 120;
+                  const barWidth = 18;
                   const yTop = yBase - h;
                   return (
                     <React.Fragment key={i}>
-                      <Polyline points={`${x},${yBase} ${x},${yBase-92}`} stroke="#F1F5F9" strokeWidth={16} strokeLinecap="round" />
-                      <Polyline points={`${x},${yBase} ${x},${yTop}`} stroke={d.waterGlasses ? '#06B58F' : '#CBD5E1'} strokeWidth={16} strokeLinecap="round" />
+                      {/* background rail */}
+                      <Rect x={x - barWidth/2} y={yBase - 92} width={barWidth} height={92} rx={8} fill="#F1F5F9" />
+                      {/* filled portion */}
+                      <Rect x={x - barWidth/2} y={yTop} width={barWidth} height={h} rx={8} fill={d.waterGlasses ? '#06B58F' : '#CBD5E1'} />
                       <SvgText x={x} y={yTop - 8} fontSize="12" fill="#064E3B" textAnchor="middle">{d.waterGlasses || 0}</SvgText>
-                      <SvgText x={x} y={yBase + 18} fontSize="10" fill="#6B7280" textAnchor="middle">{label}</SvgText>
+                      <SvgText x={x} y={yBase + 20} fontSize="10" fill="#6B7280" textAnchor="middle">{label}</SvgText>
                     </React.Fragment>
                   );
                 })}

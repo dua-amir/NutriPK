@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useFocusEffect } from 'expo-router';
 import { formatTimePK, formatHeaderDatePK, addDaysISO, toISODate, parseToDateObj, toPKDate } from './utils/dateUtils';
 import {
   View,
@@ -16,7 +17,8 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BACKEND_BASE } from './config';
 import { MaterialIcons, Entypo, FontAwesome } from '@expo/vector-icons';
-import Svg, { Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+import Svg, { Circle as SvgCircle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
 import { useRouter } from 'expo-router';
 
 
@@ -39,9 +41,10 @@ export default function Home({ navigation }) {
   // default selected date should be in Pakistan timezone (Asia/Karachi)
   const getPKIsoToday = () => {
     try {
-      const pkStr = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Karachi' });
-      const pkDate = new Date(pkStr);
-      return toISODate(pkDate);
+      // Use toPKDate to get a Date representing Pakistan wall-clock time reliably
+      const now = new Date();
+      const pk = toPKDate(now) || now;
+      return toISODate(pk);
     } catch (e) { return toISODate(new Date()); }
   };
   const [selectedDate, setSelectedDate] = useState(getPKIsoToday());
@@ -132,22 +135,30 @@ export default function Home({ navigation }) {
   const incWater = () => setWaterCount((c) => Math.min(8, c + 1));
   const decWater = () => setWaterCount((c) => Math.max(0, c - 1));
 
-  // persist water to backend when waterCount or selectedDate changes
+  // persist water to backend when waterCount changes (not when only selectedDate changes).
+  // This prevents the app from overwriting water records for other dates when the user simply navigates the date header.
   useEffect(() => {
     const persist = async () => {
       if (!userEmail) return;
       try {
-        await fetch(`${BACKEND_BASE}/api/user/water`, {
-          method: 'POST',
-          body: new URLSearchParams({ email: userEmail, date: selectedDate, glasses: String(waterCount) }),
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
+        // Use FormData for better native compatibility
+        const form = new FormData();
+        form.append('email', userEmail);
+        form.append('date', selectedDate);
+        form.append('glasses', String(waterCount));
+        const resp = await fetch(`${BACKEND_BASE}/api/user/water`, { method: 'POST', body: form });
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DEV] water POST', { email: userEmail, date: selectedDate, glasses: waterCount, status: resp.status });
+        if (resp && resp.ok) {
+          try { const ev = await import('./utils/events'); ev.emit('weeklyUpdated', { date: selectedDate }); } catch (e) { }
+        }
       } catch (e) {
-        // ignore
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DEV] water POST failed', e);
       }
     };
+    // Only persist when waterCount changes (guard for first mount when it's zero)
     persist();
-  }, [waterCount, selectedDate, userEmail]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waterCount, userEmail]);
 
   // load water for selected date
   useEffect(() => {
@@ -155,14 +166,41 @@ export default function Home({ navigation }) {
       if (!userEmail) return;
       try {
         const res = await fetch(`${BACKEND_BASE}/api/user/water?email=${encodeURIComponent(userEmail)}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DEV] water GET failed status', res.status);
+          return;
+        }
         const data = await res.json();
-        const doc = (data.water || []).find(w => w.date === selectedDate);
-        setWaterCount(doc ? Number(doc.glasses || 0) : 0);
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DEV] water GET', data);
+        // Backend may store water entries with full timestamps or with plain ISO dates.
+        // Normalize each entry to a PK local ISO date and compare to selectedDate so today's entry is found reliably.
+        const waterEntries = (data.water || []);
+        let doc = waterEntries.find(w => w.date === selectedDate);
+        if (!doc) {
+          // try parsing entries that may have a timestamp field or date with time
+          doc = waterEntries.find(w => {
+            try {
+              const raw = w.date || w.timestamp || w.time || w.created_at || w.ts;
+              if (!raw) return false;
+              const dt = (raw instanceof Date) ? raw : parseToDateObj(raw) || new Date(raw);
+              if (!dt || isNaN(dt.getTime())) return false;
+              const pk = toPKDate(dt) || dt;
+              return toISODate(pk) === selectedDate;
+            } catch (e) { return false; }
+          });
+        }
+        if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DEV] matching water for', selectedDate, '->', doc);
+        setWaterCount(doc ? Number(doc.glasses || doc.glasses_count || doc.glassesCount || 0) : 0);
       } catch (e) {}
     };
     loadWater();
   }, [selectedDate, userEmail]);
+
+  // animate main calories donut when values change
+  useEffect(() => {
+    const pct = Math.round((caloriesConsumed / Math.max(1, targetCalories)) * 100);
+    Animated.timing(calAnim, { toValue: pct, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+  }, [caloriesConsumed, targetCalories]);
 
   const addGlass = () => setWaterCount(c => Math.min(8, c + 1));
   const removeGlass = () => setWaterCount(c => Math.max(0, c - 1));
@@ -172,83 +210,149 @@ export default function Home({ navigation }) {
   // Helper to extract nutrients for debugging
   function extractNutrients(m) {
     const nutr = m.nutrients || {};
-    const cal = Number(m.calories ?? nutr.calories ?? nutr.Calories ?? 0) || 0;
-    const prot = Number(m.protein ?? nutr.protein ?? nutr.Protein ?? 0) || 0;
-    const carb = Number(m.carbs ?? m.carbohydrates ?? nutr.carbs ?? nutr.carbohydrates ?? nutr.Carbs ?? 0) || 0;
-    const fat = Number(m.fats ?? m.fat ?? nutr.fats ?? nutr.fat ?? nutr.Fat ?? 0) || 0;
+    // parse helper to extract numeric value from strings like "120 kcal" or "12 g"
+    const parseNumber = (v) => {
+      if (v == null) return 0;
+      if (typeof v === 'number') return v || 0;
+      try {
+        // remove non-digit, non-dot, non-minus characters
+        const s = String(v).trim();
+        // common patterns: "123 kcal", "12g", "~120", "120.5"
+        const m2 = s.match(/-?\d+(?:[\.,]\d+)?/);
+        if (!m2) return 0;
+        // normalize comma decimal to dot
+        const normalized = m2[0].replace(',', '.');
+        const n = Number(normalized);
+        return isNaN(n) ? 0 : n;
+      } catch (e) { return 0; }
+    };
+
+    const cal = parseNumber(m.calories ?? nutr.calories ?? nutr.Calories ?? 0);
+    const prot = parseNumber(m.protein ?? nutr.protein ?? nutr.Protein ?? 0);
+    const carb = parseNumber(m.carbs ?? m.carbohydrates ?? nutr.carbs ?? nutr.carbohydrates ?? nutr.Carbs ?? 0);
+    const fat = parseNumber(m.fats ?? m.fat ?? nutr.fats ?? nutr.fat ?? nutr.Fat ?? 0);
     return { cal, prot, carb, fat };
   }
 
   // fetch today's calories and nutrients for selectedDate
-  useEffect(() => {
-    const loadNutrients = async () => {
-      setRecentMealsLoading(true);
-      try {
-        const email = await AsyncStorage.getItem('email');
-        if (!email) {
-          setRecentMeals([]);
-          return;
-        }
-        // fetch meals and compute calories/nutrients for selectedDate
-        const res = await fetch(`${BACKEND_BASE}/api/user/meals?email=${encodeURIComponent(email)}`);
-        if (!res.ok) {
-          setRecentMeals([]);
-          return;
-        }
-        const data = await res.json();
-        const meals = data.meals || [];
-        // Dev-only: log parsing results for each meal to help debug timezone/date issues
-        try {
-          if (typeof __DEV__ !== 'undefined' && __DEV__) {
-            meals.forEach(m => {
-              const tRaw = m.timestamp || m.time || m.created_at || m.ts;
-              const dt = (tRaw instanceof Date) ? tRaw : parseToDateObj(tRaw) || new Date(tRaw);
-              const pk = toPKDate(dt) || dt;
-              const pkIso = toISODate(pk);
-              const parsedIso = dt && dt.toISOString ? dt.toISOString() : String(dt);
-              // eslint-disable-next-line no-console
-              console.log('[DEV] meal parse ->', m._id || m.id || m.name || '<meal>', 'orig:', tRaw, 'parsedUTC:', parsedIso, 'pkIso:', pkIso);
-            });
-          }
-        } catch (e) {
-          // ignore dev logging errors
-        }
-        // filter by same day using ISO date (robust parsing) and aggregate nutrients
-        const todays = meals.filter(m => {
-          const tRaw = m.timestamp || m.time || m.created_at || m.ts;
-          if (!tRaw) return false;
-          const dt = (tRaw instanceof Date) ? tRaw : parseToDateObj(tRaw) || new Date(tRaw);
-          if (!dt) return false;
-          // Convert parsed timestamp to PK local date for correct day comparison
-          const pkDate = toPKDate(dt) || dt;
-          return toISODate(pkDate) === selectedDate;
-        });
-        let c = 0, p = 0, carbs = 0, fats = 0;
-        todays.forEach(m => {
-          const nutr = m.nutrients || {};
-          // support both top-level and nested nutrient keys
-          const cal = Number(m.calories ?? nutr.calories ?? nutr.Calories ?? 0) || 0;
-          const prot = Number(m.protein ?? nutr.protein ?? nutr.Protein ?? 0) || 0;
-          const carb = Number(m.carbs ?? m.carbohydrates ?? nutr.carbs ?? nutr.carbohydrates ?? nutr.Carbs ?? 0) || 0;
-          const fat = Number(m.fats ?? m.fat ?? nutr.fats ?? nutr.fat ?? nutr.Fat ?? 0) || 0;
-          c += cal;
-          p += prot;
-          carbs += carb;
-          fats += fat;
-        });
-        setCaloriesConsumed(Math.round(c));
-        setProteinConsumed(Math.round(p));
-        setCarbsConsumed(Math.round(carbs));
-        setFatsConsumed(Math.round(fats));
-        setRecentMeals(todays);
-      } catch (e) {
-        // swallow errors but ensure UI updates below
-      } finally {
-        setRecentMealsLoading(false);
+  const loadNutrients = async () => {
+    setRecentMealsLoading(true);
+    try {
+      const email = await AsyncStorage.getItem('email');
+      if (!email) {
+        setRecentMeals([]);
+        return;
       }
-    };
+      // fetch meals and compute calories/nutrients for selectedDate
+      const res = await fetch(`${BACKEND_BASE}/api/user/meals?email=${encodeURIComponent(email)}`);
+      if (!res.ok) {
+        setRecentMeals([]);
+        return;
+      }
+      const data = await res.json();
+      const meals = data.meals || [];
+      // Dev-only: log parsing results for each meal to help debug timezone/date issues
+      try {
+        if (typeof __DEV__ !== 'undefined' && __DEV__) {
+          meals.forEach(m => {
+            const tRaw = m.timestamp || m.time || m.created_at || m.ts;
+            const dt = (tRaw instanceof Date) ? tRaw : parseToDateObj(tRaw) || new Date(tRaw);
+            const pk = toPKDate(dt) || dt;
+            const pkIso = toISODate(pk);
+            const parsedIso = dt && dt.toISOString ? dt.toISOString() : String(dt);
+            // eslint-disable-next-line no-console
+            console.log('[DEV] meal parse ->', m._id || m.id || m.name || '<meal>', 'orig:', tRaw, 'parsedUTC:', parsedIso, 'pkIso:', pkIso);
+          });
+        }
+      } catch (e) {
+        // ignore dev logging errors
+      }
+      // filter by same day using ISO date (robust parsing) and aggregate nutrients
+      const todays = meals.filter(m => {
+        const tRaw = m.timestamp || m.time || m.created_at || m.ts;
+        if (!tRaw) return false;
+        const dt = (tRaw instanceof Date) ? tRaw : parseToDateObj(tRaw) || new Date(tRaw);
+        if (!dt) return false;
+        // Convert parsed timestamp to PK local date for correct day comparison
+        const pkDate = toPKDate(dt) || dt;
+        return toISODate(pkDate) === selectedDate;
+      });
+      // local parse helper (mirror of extractNutrients) to handle strings like "120 kcal" or "12g"
+      const parseNumber = (v) => {
+        if (v == null) return 0;
+        if (typeof v === 'number') return v || 0;
+        try {
+          const s = String(v).trim();
+          const m2 = s.match(/-?\d+(?:[\.,]\d+)?/);
+          if (!m2) return 0;
+          const normalized = m2[0].replace(',', '.');
+          const n = Number(normalized);
+          return isNaN(n) ? 0 : n;
+        } catch (e) { return 0; }
+      };
+
+      let c = 0, p = 0, carbs = 0, fats = 0;
+      todays.forEach(m => {
+        const nutr = m.nutrients || {};
+        // prefer scanning nutrient object keys (robust to different key names like ENERC_KCAL)
+        let cal = 0, prot = 0, carb = 0, fat = 0;
+        try {
+          // if nutr is an object with many keys, iterate them
+          Object.keys(nutr || {}).forEach(k => {
+            try {
+              const lk = String(k).toLowerCase();
+              const v = nutr[k];
+              const n = parseNumber(v);
+              if (!n) return;
+              if (lk.includes('calor') || lk.includes('enerc') || lk.includes('kcal') || lk.includes('energy')) {
+                cal += n;
+              } else if (lk.includes('protein')) {
+                prot += n;
+              } else if (lk.includes('carbo') || lk.includes('carb')) {
+                carb += n;
+              } else if (lk.includes('fat')) {
+                fat += n;
+              }
+            } catch (e) { /* ignore individual key errors */ }
+          });
+        } catch (e) { /* ignore */ }
+
+        // fallback to top-level fields if not found in nutr
+        const topCal = parseNumber(m.calories ?? nutr.calories ?? nutr.Calories ?? 0);
+        const topProt = parseNumber(m.protein ?? nutr.protein ?? nutr.Protein ?? 0);
+        const topCarb = parseNumber(m.carbs ?? m.carbohydrates ?? nutr.carbs ?? nutr.carbohydrates ?? nutr.Carbs ?? 0);
+        const topFat = parseNumber(m.fats ?? m.fat ?? nutr.fats ?? nutr.fat ?? nutr.Fat ?? 0);
+
+        // use top-level only if scanned values are zero (so explicit nutr keys take precedence)
+        c += (cal || topCal);
+        p += (prot || topProt);
+        carbs += (carb || topCarb);
+        fats += (fat || topFat);
+      });
+      setCaloriesConsumed(Math.round(c));
+      setProteinConsumed(Math.round(p));
+      setCarbsConsumed(Math.round(carbs));
+      setFatsConsumed(Math.round(fats));
+      setRecentMeals(todays);
+    } catch (e) {
+      // swallow errors but ensure UI updates below
+    } finally {
+      setRecentMealsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadNutrients();
   }, [selectedDate]);
+
+  // also refresh when screen is focused so newly-saved meals show up immediately
+  useFocusEffect(React.useCallback(() => {
+    // On focus, refresh nutrients for the currently-selected date.
+    // Do NOT reset `selectedDate` to today here — that would overwrite user navigation via the < and > arrows.
+    loadNutrients();
+    // no cleanup
+    return () => {};
+  }, [selectedDate]));
 
   const showPrev = () => setSelectedDate(addDaysISO(selectedDate, -1));
   const showNext = () => setSelectedDate(addDaysISO(selectedDate, 1));
@@ -302,8 +406,8 @@ export default function Home({ navigation }) {
                 <Entypo name="chevron-left" size={22} color="#fff" />
               </TouchableOpacity>
               <View style={{ alignItems: 'center', paddingHorizontal: 8 }}>
-                <Text style={styles.dateSmall}>{formatHeaderDate(selectedDate)}</Text>
-                <Text style={styles.greetingNameCenter}>{formatHeaderDate(selectedDate)}</Text>
+                <Text style={styles.dateSmall}>{formatHeaderDatePK(new Date(selectedDate + 'T00:00:00Z'))}</Text>
+                  <Text style={styles.greetingNameCenter}>{formatHeaderDatePK(new Date(selectedDate + 'T00:00:00Z'))}</Text>
               </View>
               <TouchableOpacity onPress={showNext} style={{ padding: 8 }}>
                 <Entypo name="chevron-right" size={22} color="#fff" />
@@ -378,7 +482,7 @@ export default function Home({ navigation }) {
               <Text style={styles.waterFooterText}>{waterCount * 250} / 2000ml</Text>
               <Text style={styles.waterFooterText}>{Math.round((waterCount/8)*100)}%</Text>
             </View>
-            <Text style={{color:'#E6FFF2', marginTop:8}}>1 glass ≈ 250 ml</Text>
+            <Text style={{color:'#2E7D32', marginTop:8}}>1 glass ≈ 250 ml</Text>
           </View>
         </View>
 
@@ -434,9 +538,7 @@ export default function Home({ navigation }) {
                   </TouchableOpacity>
                   <View style={styles.mealRight}>
                     <Text style={styles.mealTime}>{formatTime(m.timestamp || m.time)}</Text>
-                    <TouchableOpacity onPress={() => { if (navigation && navigation.navigate) navigation.navigate('MealDetails', { meal: JSON.stringify(m) }); }}>
-                      <Entypo name="chevron-right" size={18} color="#9CA3AF" />
-                    </TouchableOpacity>
+                    {/* Chevron removed per design */}
                   </View>
                 </Animated.View>
               );
@@ -456,20 +558,21 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(100, Math.max(0, percentage));
-  const strokeDashoffset = circumference - (circumference * progress) / 100;
+  const progress = Math.min(100, Math.max(0, Number(percentage) || 0));
+  const strokeDashoffset = circumference * (1 - progress / 100);
+
+  // debug logs to capture runtime values on device when SVG doesn't show
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    // eslint-disable-next-line no-console
+    console.log('[DEV] Home CircularProgress', { size, radius, circumference, progress, strokeDashoffset, percentage, animatedValue: !!animatedValue });
+  }
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size}>
-        <Defs>
-          <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <Stop offset="0%" stopColor="#7AE582" stopOpacity="1" />
-            <Stop offset="100%" stopColor="#10B981" stopOpacity="1" />
-          </LinearGradient>
-        </Defs>
-        <G rotation="-90" origin={`${center}, ${center}`}>
-          <Circle
+        {/* Use a solid stroke color for reliable rendering on Android/Expo */}
+        <G rotation="-90" origin={`${center} ${center}`}>
+          <SvgCircle
             cx={center}
             cy={center}
             r={radius}
@@ -477,17 +580,31 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
             strokeWidth={strokeWidth}
             fill="none"
           />
-          <Circle
-            cx={center}
-            cy={center}
-            r={radius}
-            stroke="url(#grad)"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeDasharray={`${circumference} ${circumference}`}
-            strokeDashoffset={strokeDashoffset}
-            fill="none"
-          />
+          {animatedValue ? (
+            <AnimatedSvgCircle
+              cx={center}
+              cy={center}
+              r={radius}
+              stroke="#065F46"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={[circumference]}
+              strokeDashoffset={animatedValue.interpolate ? animatedValue.interpolate({ inputRange: [0, 100], outputRange: [circumference, 0] }) : strokeDashoffset}
+              fill="none"
+            />
+          ) : (
+            <SvgCircle
+              cx={center}
+              cy={center}
+              r={radius}
+              stroke="#065F46"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={[circumference]}
+              strokeDashoffset={strokeDashoffset}
+              fill="none"
+            />
+          )}
         </G>
       </Svg>
 
@@ -518,10 +635,10 @@ function AnimatedButton({ children, onPress, style }) {
 
 function randomQuote() {
   const quotes = [
-    "Consistency isn’t about perfection; it’s about showing up every day and trusting the process 💚",
-    "Small daily habits shape big, lasting transformations; one mindful choice at a time 🌱",
-    "Fuel your body with intention, and let every meal be a step toward your stronger self ✨",
-    "Every bit of progress counts, keep pushing forward, your goals are closer than you think 💪",
+    "Consistency isn’t about perfection; it’s about showing up every day and trusting the process",
+    "Small daily habits shape big, lasting transformations; one mindful choice at a time",
+    "Fuel your body with intention, and let every meal be a step toward your stronger self",
+    "Every bit of progress counts, keep pushing forward, your goals are closer than you think",
   ];
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
@@ -546,11 +663,11 @@ const styles = StyleSheet.create({
   heroSubSmall: { color: '#fff', fontSize: 12, marginTop: 4 },
   dateSmall: { fontSize: 12, color: '#fff', fontWeight: '700' },
   greetingNameCenter: { fontSize: 16, fontWeight: '800', color: '#fff' },
-  avatarWrapLeft: { marginRight: 12, alignItems: 'flex-start' },
+  avatarWrapLeft: { marginRight: 12, alignItems: 'flex-start', marginLeft: 8 },
   avatarCircleLeft: { width: 56, height: 56, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', borderWidth: 0 },
   avatarImg: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#F1F5F9' },
   avatarInitialLeft: { fontSize: 14, fontWeight: '800', color: '#374151' },
-  calendarBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  calendarBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   avatarInitial: { fontSize: 16, fontWeight: '800', color: '#065F46' },
   cardsRow: { width: "100%", maxWidth: 980, flexDirection: "row", justifyContent: "space-between", gap: 16, marginBottom: 18 },
   card: { flex: 1, minWidth: 260, backgroundColor: "#FFFFFF", borderRadius: 14, padding: 20, marginBottom: 14, borderWidth: 0 },
@@ -580,42 +697,42 @@ const styles = StyleSheet.create({
   motivationTextInline: { color: '#2E7D32', fontSize: 15, fontWeight: 300 },
   heroSubSmall: { color: '#fff', fontSize: 12, marginTop: 6 },
   recentMealsWrap: { width: '100%', backgroundColor: '#FFFFFF', borderRadius: 8, padding: 12, marginBottom: 16 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#0B1220', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#2E7D32', marginBottom: 8 },
   muted: { color: '#94A3B8', fontSize: 12 },
-  caloriesCardWrap: { width: '100%', paddingHorizontal: 0, marginBottom: 12 },
+  caloriesCardWrap: { width: '100%', paddingHorizontal: 12, marginBottom: 12 },
   caloriesCard: { width: '100%', backgroundColor: '#F0FDF4', borderRadius: 14, padding: 18, alignItems: 'center' },
   caloriesInnerPanel: { width: 180, height: 120, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', shadowColor: '#0B1220', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
   caloriesLabel: { color: '#065F46', fontWeight: '700', fontSize: 14 },
   caloriesBig: { fontSize: 42, fontWeight: '900', color: '#07112A' },
   caloriesSmall: { color: '#94A3B8', fontSize: 12 },
-  statRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
+  statRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 12, paddingHorizontal: 12 },
   statCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: '800', color: '#07112A' },
-  statLabel: { fontSize: 12, color: '#94A3B8', marginTop: 6 },
-  waterVisualWrap: { width: '100%', marginTop: 12, marginBottom: 28 },
-  waterVisualCard: { backgroundColor: '#06B58F', borderRadius: 14, padding: 16 },
+  statLabel: { fontSize: 12, fontWeight: 'bold', color: '#2E7D32', marginTop: 6 },
+  waterVisualWrap: { width: '100%', marginTop: 12, marginBottom: 28, paddingHorizontal: 12 },
+  waterVisualCard: { backgroundColor: '#F0FDF4', borderRadius: 14, padding: 16 },
   waterVisualTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  waterLabel: { color: '#fff', fontWeight: '800' },
-  viewMoreDots: { backgroundColor: '#0A8A6A', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  waterLabel: { color: '#2E7D32', fontWeight: '800' },
+  viewMoreDots: { backgroundColor: '#2E7D32', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
   waterGlassesRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
   glass: { width: 30, height: 36, borderRadius: 6, marginHorizontal: 4 },
-  glassFilled: { backgroundColor: '#fff' },
-  glassEmpty: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  glassFilled: { backgroundColor: '#2E7D32' },
+  glassEmpty: { backgroundColor: 'rgba(170, 159, 159, 0.18)' },
   waterFooterRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  waterFooterText: { color: '#E6FFF2', fontWeight: '700' },
+  waterFooterText: { color: '#2E7D32', fontWeight: '700' },
   mealRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F7F9FB' },
   mealLeft: { flex: 1, paddingRight: 8 },
   mealTopRow: { flexDirection: 'row', alignItems: 'center' },
   mealAvatar: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#F7FAFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  mealAvatarText: { fontSize: 13, fontWeight: '700', color: '#0B1220' },
+  mealAvatarText: { fontSize: 13, fontWeight: '700', color: '#2E7D32' },
   mealImage: { width: 44, height: 44, borderRadius: 8, marginRight: 12, backgroundColor: '#EFEFF0' },
-  mealTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  mealSubtitle: { fontSize: 13, color: '#6B7280', marginTop: 4 },
+  mealTitle: { fontSize: 14, fontWeight: '700', color: '#2E7D32' },
+  mealSubtitle: { fontSize: 15, color: '#6B7280', marginTop: 4 },
   mealTime: { fontSize: 12, color: '#94A3B8' },
   footer: { paddingVertical: 16, alignItems: "center", width: "100%" },
   footerText: { color: "#A1A9B1", fontSize: 12 },
   overlapRow: { marginTop: -20, marginBottom: 6, paddingHorizontal: 2 },
-  addMealButton: { marginTop: 12, backgroundColor: '#10B981', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  addMealButton: { marginTop: 12, backgroundColor: '#2E7D32', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
   addMealText: { color: '#fff', fontWeight: '800' },
   viewAllBtn: { marginTop: 12, alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 14 },
   viewAllText: { color: '#FF6B5C', fontWeight: '700' },

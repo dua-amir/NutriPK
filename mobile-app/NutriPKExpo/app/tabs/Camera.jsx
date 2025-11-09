@@ -344,7 +344,7 @@ export default function Home() {
             style={[styles.predictButton, { marginTop: 12 }, !predictions.nutrients && styles.predictButtonDisabledVisible]}
             onPress={onViewNutrientsPress}
           >
-            <Text style={styles.predictButtonText}>📋 View Nutrients</Text>
+            <Text style={styles.predictButtonText}> View Nutrients</Text>
           </TouchableOpacity>
           {/* Save meal directly from results */}
           <TouchableOpacity
@@ -352,7 +352,7 @@ export default function Home() {
             onPress={saveMeal}
             disabled={loading}
           >
-            <Text style={styles.predictButtonText}>💾 Save Meal</Text>
+            <Text style={styles.predictButtonText}> Save Meal</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -378,12 +378,6 @@ export default function Home() {
             )}
           </ScrollView>
 
-          <TouchableOpacity
-            style={[styles.predictButton, {marginTop:16, backgroundColor:'#FF6F61'}]}
-            onPress={saveMeal}
-          >
-            <Text style={styles.predictButtonText}>💾 Save Meal</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={[styles.predictButton, {marginTop:10}]} onPress={() => setShowNutrients(false)}>
             <Text style={styles.predictButtonText}>Close</Text>
           </TouchableOpacity>

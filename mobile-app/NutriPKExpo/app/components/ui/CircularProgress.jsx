@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle as SvgCircle, G } from 'react-native-svg';
 
 export const CircularProgress = ({ percentage = 0, value, label, unit = '', color = '#4CAF50', radius = 40, strokeWidth = 10 }) => {
   const size = radius * 2;
@@ -8,6 +8,14 @@ export const CircularProgress = ({ percentage = 0, value, label, unit = '', colo
   const circumference = 2 * Math.PI * (radius - strokeWidth / 2);
   const progressValue = Math.min(percentage, 100) / 100;
   const strokeDashoffset = circumference * (1 - progressValue);
+
+  useEffect(() => {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      // debug info for device logs to help diagnose rendering issues on Expo Go
+      // eslint-disable-next-line no-console
+      console.log('[DEV] CircularProgress debug', { circumference, progressValue, strokeDashoffset, radius, strokeWidth });
+    }
+  }, [circumference, progressValue, strokeDashoffset, radius, strokeWidth]);
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
@@ -18,8 +26,8 @@ export const CircularProgress = ({ percentage = 0, value, label, unit = '', colo
         </View>
       </View>
       <Svg style={StyleSheet.absoluteFill}>
-        <G rotation="-90" origin={`${center}, ${center}`}>
-          <Circle
+        <G rotation="-90" origin={`${center} ${center}`}>
+          <SvgCircle
             cx={center}
             cy={center}
             r={radius - strokeWidth / 2}
@@ -27,13 +35,13 @@ export const CircularProgress = ({ percentage = 0, value, label, unit = '', colo
             strokeWidth={strokeWidth}
             fill="none"
           />
-          <Circle
+          <SvgCircle
             cx={center}
             cy={center}
             r={radius - strokeWidth / 2}
-            stroke="#fff"
+            stroke={color || '#065F46'}
             strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
+            strokeDasharray={[circumference]}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             fill="none"
