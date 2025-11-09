@@ -1,6 +1,7 @@
 from pathlib import Path
 import logging
 import math
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,9 @@ def _find_nutrients_file():
         if not p.is_file():
             continue
         name = p.name.lower()
+        # Skip temporary/lock files created by Excel (they start with '~$')
+        if name.startswith('~$'):
+            continue
         if 'nutrient' in name:
             # prefer excel over csv
             if p.suffix.lower() in ('.xlsx', '.xls'):
@@ -83,6 +87,20 @@ def _load_table():
                 reader = csv.DictReader(fh)
                 rows = [r for r in reader]
 
+        # Helper: normalize dish names into a canonical key
+        def _normalize(s, remove_parens=False):
+            if s is None:
+                return ''
+            t = str(s).strip().lower()
+            if remove_parens:
+                # remove parentheses and their contents
+                t = re.sub(r"\(.*?\)", " ", t)
+            # replace any non-alphanumeric characters with underscore
+            t = re.sub(r"[^a-z0-9]+", "_", t)
+            # collapse multiple underscores
+            t = re.sub(r"_+", "_", t)
+            return t.strip('_')
+
         # Expect a column identifying the dish name. Try common names.
         for r in rows:
             # Determine dish name column
@@ -100,8 +118,12 @@ def _load_table():
             dish_name_raw = r.get(dish_key)
             if dish_name_raw is None:
                 continue
-            # Normalize to match model class string convention: lowercase and underscores
-            dish_norm = str(dish_name_raw).strip().lower().replace(' ', '_')
+            # Normalize keys in two ways so variants match: full (keep descriptor)
+            # and base (remove parenthetical descriptors). Both will point to the
+            # same nutrient dict so lookups like 'paya', 'Paya', 'paya(beef)'
+            # will resolve.
+            dish_full = _normalize(dish_name_raw, remove_parens=False)
+            dish_base = _normalize(dish_name_raw, remove_parens=True)
 
             # Remove the identifying column from nutrient data
             nutrient_data = {k: v for k, v in r.items() if k != dish_key}
@@ -167,7 +189,11 @@ def _load_table():
                 # Fallback: keep value as-is
                 cleaned[k] = v
 
-            _cache[dish_norm] = cleaned
+            # Store under both normalized keys (avoid overwriting existing entries)
+            if dish_full:
+                _cache.setdefault(dish_full, cleaned)
+            if dish_base and dish_base != dish_full:
+                _cache.setdefault(dish_base, cleaned)
 
         logger.info("Loaded %d nutrient entries from %s", len(_cache), path)
     except Exception as exc:
@@ -181,7 +207,24 @@ def get_nutrients_for(dish_name):
     if not dish_name:
         return None
     table = _load_table()
-    key = str(dish_name).strip().lower().replace(' ', '_')
+    def _lookup_key(s):
+        if not s:
+            return ''
+        s = str(s)
+        # try exact normalized forms: full and base
+        k_full = re.sub(r"[^a-z0-9]+", "_", s.strip().lower())
+        k_full = re.sub(r"_+", "_", k_full).strip('_')
+        k_base = re.sub(r"\(.*?\)", " ", s.strip().lower())
+        k_base = re.sub(r"[^a-z0-9]+", "_", k_base)
+        k_base = re.sub(r"_+", "_", k_base).strip('_')
+        return k_full, k_base
+
+    key, key_base = _lookup_key(dish_name)
+    # direct lookup
+    if key in table:
+        return table.get(key)
+    if key_base in table:
+        return table.get(key_base)
     # direct lookup
     if key in table:
         return table.get(key)
@@ -195,7 +238,6 @@ def get_nutrients_for(dish_name):
         return table.get(alt2)
 
     # remove punctuation and parentheses
-    import re
     key_clean = re.sub(r"[^a-z0-9_]", "", key)
     if key_clean in table:
         return table.get(key_clean)

@@ -18,6 +18,10 @@ class UserProfile(UserBase):
     height: Optional[int] = None
     weight: Optional[int] = None
     profile_image_url: Optional[str] = None
+    target_calories: Optional[int] = None
+    target_protein: Optional[float] = None
+    target_carbs: Optional[float] = None
+    target_fats: Optional[float] = None
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr]
@@ -26,6 +30,10 @@ class UserUpdate(BaseModel):
     height: Optional[int]
     weight: Optional[int]
     profile_image_url: Optional[str] = None
+    target_calories: Optional[int] = None
+    target_protein: Optional[float] = None
+    target_carbs: Optional[float] = None
+    target_fats: Optional[float] = None
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
@@ -33,3 +41,8 @@ class PasswordResetRequest(BaseModel):
 class PasswordReset(BaseModel):
     token: str
     new_password: str
+
+
+class OTPVerify(BaseModel):
+    email: EmailStr
+    otp: str

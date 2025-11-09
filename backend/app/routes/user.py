@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Body, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from app.models.user import UserCreate, UserLogin, UserProfile, UserUpdate, PasswordResetRequest
+from app.models.user import UserCreate, UserLogin, UserProfile, UserUpdate, PasswordResetRequest, OTPVerify
 from app.utils.email_utils import send_reset_email
+from app.utils.email_utils import send_otp_email
 from fastapi import UploadFile, File, Form
 import os
 
@@ -76,6 +77,42 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
     if user is None:
         raise credentials_exception
     return user
+
+
+@router.get("/water")
+async def get_water(email: str):
+    # return water records for given email (all or by date query param optional)
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+    db = client.nutripk
+    docs = []
+    async for d in db.water.find({"email": email}):
+        # convert ObjectId to str if present
+        d["_id"] = str(d.get("_id"))
+        docs.append(d)
+    return {"water": docs}
+
+
+@router.post("/water")
+async def set_water(email: str = Form(...), date: str = Form(...), glasses: int = Form(...)):
+    # upsert water record for date (date expected in YYYY-MM-DD)
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+    db = client.nutripk
+    await db.water.update_one({"email": email, "date": date}, {"$set": {"glasses": int(glasses)}}, upsert=True)
+    return {"status": "ok", "email": email, "date": date, "glasses": int(glasses)}
+
+
+@router.get("/meals")
+async def get_meals_for_date(email: str, date: str = None):
+    # date optional; if provided filter meals by day (PK timezone assumed by weekly_summary)
+    client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+    db = client.nutripk
+    query = {"email": email}
+    results = []
+    async for m in db.meals.find(query).sort([('timestamp', -1)]).limit(100):
+        m['_id'] = str(m.get('_id'))
+        # include nutrients and image
+        results.append(m)
+    return {"meals": results}
 
 
 @router.post("/signup", response_model=UserProfile)
@@ -176,6 +213,32 @@ async def update_profile(
     profile_image_file = form.get('profile_image_file')
     # Also support profile_image_data (data URI base64) from native clients
     profile_image_data = form.get('profile_image_data')
+    # optional target_calories field
+    try:
+        tc = form.get('target_calories')
+        if tc is not None:
+            update_data['target_calories'] = int(tc)
+    except Exception:
+        pass
+    # optional macronutrient targets
+    try:
+        tp = form.get('target_protein')
+        if tp is not None:
+            update_data['target_protein'] = float(tp)
+    except Exception:
+        pass
+    try:
+        tc2 = form.get('target_carbs')
+        if tc2 is not None:
+            update_data['target_carbs'] = float(tc2)
+    except Exception:
+        pass
+    try:
+        tf = form.get('target_fats')
+        if tf is not None:
+            update_data['target_fats'] = float(tf)
+    except Exception:
+        pass
     # If field is an UploadFile-like object (Starlette UploadFile), it will be instance of UploadFile or have filename/read
     try:
         from fastapi import UploadFile as _UploadFile
@@ -252,6 +315,25 @@ async def update_profile(
 
 
 
+@router.get("/profile-public")
+async def get_profile_public(email: str):
+    user = await get_user_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # return only public fields without requiring auth
+    public = {
+        "email": user.get("email"),
+        "username": user.get("username"),
+        "profile_image_url": user.get("profile_image_url"),
+        "target_calories": user.get("target_calories", None),
+        "target_protein": user.get("target_protein", None),
+        "target_carbs": user.get("target_carbs", None),
+        "target_fats": user.get("target_fats", None),
+    }
+    return public
+
+
+
 @router.post("/forgot-password")
 async def forgot_password(req: PasswordResetRequest):
     user = await get_user_by_email(req.email)
@@ -264,6 +346,51 @@ async def forgot_password(req: PasswordResetRequest):
     if not sent:
         raise HTTPException(status_code=500, detail="Failed to send email. Please try again later.")
     return {"msg": "Password reset link sent to your email."}
+
+
+@router.post("/send-otp")
+async def send_otp(req: PasswordResetRequest):
+    user = await get_user_by_email(req.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found")
+    # generate secure 6-digit OTP
+    import secrets
+    otp = f"{secrets.randbelow(1000000):06d}"
+    expires = datetime.utcnow() + timedelta(minutes=10)
+    # store OTP and expiry in user document
+    await user_collection.update_one({"email": req.email}, {"$set": {"otp_code": otp, "otp_expires": expires}})
+    sent = send_otp_email(req.email, otp)
+    if not sent:
+        raise HTTPException(status_code=500, detail="Failed to send OTP. Please try again later.")
+    return {"msg": "OTP sent to your email."}
+
+
+@router.post("/verify-otp")
+async def verify_otp(otp_req: OTPVerify):
+    user = await get_user_by_email(otp_req.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found")
+    stored = user.get('otp_code')
+    expires = user.get('otp_expires')
+    if not stored or not expires:
+        raise HTTPException(status_code=400, detail="No OTP requested for this account.")
+    # compare and check expiry
+    if str(stored) != str(otp_req.otp):
+        raise HTTPException(status_code=400, detail="Invalid OTP.")
+    if isinstance(expires, str):
+        try:
+            from dateutil.parser import parse as parse_dt
+            expires_dt = parse_dt(expires)
+        except Exception:
+            expires_dt = None
+    else:
+        expires_dt = expires
+    if not expires_dt or datetime.utcnow() > expires_dt:
+        raise HTTPException(status_code=400, detail="OTP expired.")
+    # OTP valid -> remove otp fields and issue short lived token for reset (15 min)
+    await user_collection.update_one({"email": otp_req.email}, {"$unset": {"otp_code": "", "otp_expires": ""}})
+    token = create_access_token({"sub": otp_req.email}, expires_delta=timedelta(minutes=15))
+    return {"msg": "OTP verified.", "token": token}
 
 # Password reset endpoint
 from app.models.user import PasswordReset

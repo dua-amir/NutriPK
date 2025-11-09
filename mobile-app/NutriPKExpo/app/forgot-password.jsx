@@ -9,6 +9,8 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { BACKEND_BASE } from './config';
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -23,17 +25,24 @@ export default function ForgotPassword() {
       return;
     }
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/forgot-password", {
+      // Optimistic navigation: open SendOTP screen immediately, then send OTP in background
+      router.push(`/screens/SendOTP?email=${encodeURIComponent(email)}`);
+      // still send OTP request so backend sends email
+  fetch(`${BACKEND_BASE}/api/user/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.detail || "Failed to send reset link.");
-      } else {
-        setSubmitted(true);
-      }
+      })
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .then((result) => {
+          if (!result.ok) {
+            // log or optionally notify user
+            console.warn('Failed to send OTP:', result.data);
+          }
+        })
+        .catch((err) => {
+          console.warn('Network error sending OTP:', err);
+        });
     } catch (err) {
       setError("Network error. Please try again.");
     }
@@ -44,52 +53,41 @@ export default function ForgotPassword() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.logoContainer}>
-        <Image
-          source={require("../assets/images/logo.jpg")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.title}>NutriPK</Text>
+      {/* header back */}
+      <TouchableOpacity style={styles.headerBack} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={22} color="#222" />
+      </TouchableOpacity>
+
+      <View style={styles.topContent}>
+        <Text style={styles.title}>Forgot Password?</Text>
+        <Text style={styles.subtitle}>
+          Please enter your registered email address below. We'll send you a One-Time Password (OTP) to reset your password securely.
+        </Text>
+
+        <Text style={styles.label}>Registered Email Address</Text>
+
+        <View style={styles.inputRow}>
+          <View style={styles.inputIconWrap}>
+            <Ionicons name="mail-outline" size={18} color="#666" />
+          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="user@nutripk.com"
+            placeholderTextColor="#A0A0A0"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+        </View>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Forgot Password</Text>
-        {submitted ? (
-          <Text style={styles.successText}>
-            If an account with that email exists, a password reset link has been sent.
-          </Text>
-        ) : (
-          <>
-            <Text style={styles.infoText}>
-              Enter your email address and we'll send you a link to reset your password.
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#A0A0A0"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-            {error ? (
-              <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
-            ) : null}
-            <TouchableOpacity
-              style={styles.resetButton}
-              activeOpacity={0.85}
-              onPress={handleReset}
-            >
-              <Text style={styles.resetButtonText}>Send Reset Link</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.backButtonText}>Back to Login</Text>
-            </TouchableOpacity>
-          </>
-        )}
+
+      {/* bottom button */}
+      <View style={styles.bottomWrap} pointerEvents="box-none">
+        <TouchableOpacity style={styles.sendButton} activeOpacity={0.9} onPress={handleReset}>
+          <Text style={styles.sendButtonText}>Send OTP Code</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -98,100 +96,86 @@ export default function ForgotPassword() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E0E0D5",
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 24,
+    backgroundColor: '#FFF3EC',
+    paddingTop: 18,
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
   },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 18,
+  headerBack: {
+    paddingTop: 8,
+    paddingLeft: 4,
   },
-  logo: {
-    width: 110,
-    height: 110,
-    marginBottom: 8,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#E0E0D5",
+  topContent: {
+    paddingTop: 6,
   },
   title: {
-    fontSize: 34,
-    fontWeight: "bold",
-    color: "#0e4f11ff",
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  card: {
-    width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2E7D32",
-    marginBottom: 18,
-    alignSelf: "flex-start",
-    letterSpacing: 0.5,
-  },
-  infoText: {
-    color: "#4E944F",
-    fontSize: 15,
-    marginBottom: 18,
-    textAlign: "center",
-  },
-  input: {
-    width: "100%",
-    height: 44,
-    backgroundColor: "#E0E0D5",
-    borderRadius: 8,
-    borderWidth: 0,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    color: "#2E7D32",
-  },
-  resetButton: {
-    width: "100%",
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#0e4f11ff',
+    marginTop: 6,
     marginBottom: 8,
   },
-  resetButtonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "bold",
-    letterSpacing: 0.2,
+  subtitle: {
+    color: '#7B8794',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 18,
   },
-  backButton: {
-    marginTop: 4,
-    alignItems: "center",
-  },
-  backButtonText: {
-    color: "#4E944F",
-    fontSize: 15,
-    textDecorationLine: "underline",
-    fontWeight: "500",
-  },
-  successText: {
-    color: "#2E7D32",
+  label: {
+    color: '#0e4f11ff',
     fontSize: 16,
-    textAlign: "center",
-    marginVertical: 18,
-    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  inputIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#ECECEC',
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: '#222',
+  },
+  errorText: {
+    color: 'red',
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  bottomWrap: {
+    paddingBottom: 18,
+    paddingHorizontal: 10,
+  },
+  sendButton: {
+    backgroundColor: '#0e4f11ff',
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  sendButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

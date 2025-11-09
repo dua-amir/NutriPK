@@ -1,12 +1,22 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { BACKEND_BASE } from './config';
 
 export default function ResetPassword() {
   const router = useRouter();
-  const { token } = useLocalSearchParams();
+  // try expo-router search params first, then fallback to window.location (web)
+  const params = useLocalSearchParams();
+  let token = params?.token;
+  if (!token && typeof window !== "undefined") {
+    const qp = new URLSearchParams(window.location.search);
+    token = qp.get("token");
+  }
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +40,7 @@ export default function ResetPassword() {
     }
     setLoading(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/user/reset-password", {
+        const response = await fetch(`${BACKEND_BASE}/api/user/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, new_password: newPassword }),
@@ -39,7 +49,11 @@ export default function ResetPassword() {
       if (!response.ok) {
         setError(data.detail || "Failed to reset password.");
       } else {
-        setSuccess("Password reset successful! You can now login.");
+        setSuccess("Password reset successful! Redirecting to login...");
+        // short delay so user sees success message, then go to Login
+        setTimeout(() => {
+          router.replace("/Login");
+        }, 900);
       }
     } catch (err) {
       setError("Network error. Please try again.");
@@ -49,38 +63,72 @@ export default function ResetPassword() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Reset Password</Text>
-        {success ? (
-          <Text style={styles.successText}>{success}</Text>
-        ) : (
-          <>
-            <TextInput
-              style={styles.input}
-              placeholder="New Password"
-              secureTextEntry
-              value={newPassword}
-              onChangeText={setNewPassword}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm New Password"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            <TouchableOpacity style={styles.button} onPress={handleReset} disabled={loading}>
-              <Text style={styles.buttonText}>{loading ? "Resetting..." : "Reset Password"}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.replace("/Login")}> 
-              <Text style={styles.backButtonText}>Back to Login</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </ScrollView>
+    <View style={{flex:1, backgroundColor: '#FFF3EC'}}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.outerFrame}>
+          <View style={styles.innerFrame}>
+            <View style={styles.cardTop}>
+              <TouchableOpacity style={styles.backIcon} onPress={() => router.replace('/Login')}>
+                <Ionicons name="arrow-back" size={20} color="#0e4f11ff" />
+              </TouchableOpacity>
+              <Text style={styles.heading}>Secure Your Account!</Text>
+              <Text style={styles.subtitle}>Your account security is our top priority. Please create a new password using a mix of letters, numbers, and symbols.</Text>
+            </View>
+
+            <View style={styles.card}>
+              {success ? (
+                <Text style={styles.successText}>{success}</Text>
+              ) : (
+                <>
+                  <View style={styles.inputBox}>
+                    <Ionicons name="lock-closed" size={20} color="#7B8794" style={{marginRight:10}} />
+                    <TextInput
+                      style={styles.inputBoxInput}
+                      placeholder="Create new password"
+                      placeholderTextColor="#A0A0A0"
+                      secureTextEntry={!showNew}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      selectionColor="#0e4f11ff"
+                    />
+                    <TouchableOpacity onPress={() => setShowNew(s => !s)} style={styles.eyeButton}>
+                      <Ionicons name={showNew?"eye-outline":"eye-off-outline"} size={20} color="#4E944F" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.inputBox}>
+                    <Ionicons name="lock-closed" size={20} color="#7B8794" style={{marginRight:10}} />
+                    <TextInput
+                      style={styles.inputBoxInput}
+                      placeholder="Confirm new password"
+                      placeholderTextColor="#A0A0A0"
+                      secureTextEntry={!showConfirm}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      selectionColor="#0e4f11ff"
+                    />
+                    <TouchableOpacity onPress={() => setShowConfirm(s => !s)} style={styles.eyeButton}>
+                      <Ionicons name={showConfirm?"eye-outline":"eye-off-outline"} size={20} color="#4E944F" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Footer save button pinned to bottom of screen (outside the white card) */}
+      {!success && (
+        <View style={styles.footer} pointerEvents={loading ? 'none' : 'auto'}>
+          <TouchableOpacity style={[styles.saveButton, loading && styles.disabledButton]} onPress={handleReset} disabled={loading} activeOpacity={0.9}>
+            <Text style={styles.saveButtonText}>{loading ? "Saving..." : "Save New Password"}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -88,79 +136,128 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E0E0D5",
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 24,
+    justifyContent: "flex-start",
+    backgroundColor: "#FFF3EC",
+    paddingHorizontal: 16,
+    paddingTop: 36,
+    paddingBottom: 160, // room for bottom pill button
+  },
+  outerFrame: {
+    width: '100%',
+    alignItems: 'center',
+    // keep transparent so there's no green border
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  innerFrame: {
+    width: '100%',
+    // white card look with subtle shadow
+    backgroundColor: '#FFF3EC',
+    borderRadius: 12,
+    padding: 18,
+    // small card shadow
+    shadowColor: '#0e4f11ff',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardTop: {
+    width: '100%',
+    marginBottom: 12,
+    paddingHorizontal: 6,
+    position: 'relative',
+  },
+  // place the back icon in normal flow so it sits above the heading instead of overlapping
+  backIcon: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    padding: 6,
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0e4f11ff',
+    marginBottom: 8,
+    marginTop: 2,
+  },
+  subtitle: {
+    color: '#7B8794',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 14,
   },
   card: {
-    width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    alignItems: "center",
-    marginBottom: 12,
+    width: '100%',
+    backgroundColor: 'transparent',
+    padding: 0,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#2E7D32",
-    marginBottom: 18,
-    alignSelf: "flex-start",
-    letterSpacing: 0.5,
-  },
-  input: {
-    width: "100%",
-    height: 44,
-    backgroundColor: "#E0E0D5",
-    borderRadius: 8,
+  inputBox: {
+    width: '100%',
+    height: 56,
+    backgroundColor: '#F6F8F7',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    marginBottom: 14,
     borderWidth: 0,
-    paddingHorizontal: 16,
+  },
+  inputBoxInput: {
+    flex: 1,
     fontSize: 16,
-    marginBottom: 16,
-    color: "#2E7D32",
+    color: '#222',
+    paddingVertical: 0,
   },
-  button: {
-    width: "100%",
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "bold",
-    letterSpacing: 0.2,
-  },
-  backButton: {
-    marginTop: 4,
-    alignItems: "center",
-  },
-  backButtonText: {
-    color: "#4E944F",
-    fontSize: 15,
-    textDecorationLine: "underline",
-    fontWeight: "500",
+  eyeButton: {
+    padding: 8,
   },
   errorText: {
-    color: "red",
-    fontSize: 15,
-    marginBottom: 8,
-    textAlign: "center",
+    color: 'red',
+    marginTop: 6,
+    marginBottom: 6,
+    fontSize: 14,
+    textAlign: 'center',
   },
   successText: {
-    color: "#2E7D32",
+    color: '#2E7D32',
+    fontSize: 15,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  saveWrapper: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 18,
+    alignItems: 'center',
+  },
+  saveButton: {
+    width: 260,
+    maxWidth: 420,
+    height: 52,
+    backgroundColor: '#0e4f11ff',
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
     fontSize: 16,
-    textAlign: "center",
-    marginVertical: 18,
-    fontWeight: "bold",
+    fontWeight: '700',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

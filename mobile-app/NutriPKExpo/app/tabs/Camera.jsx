@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from "expo-router";
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, ScrollView, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { BACKEND_BASE } from '../config';
 
 export default function Home() {
   const router = useRouter();
@@ -82,7 +83,7 @@ export default function Home() {
 
       // If you're running on the Android emulator, replace localhost with 10.0.2.2
       // If on a physical device, use your PC's LAN IP (e.g., http://192.168.x.y:8000)
-      const endpoint = 'http://localhost:8000/api/dish/predict/';
+  const endpoint = `${BACKEND_BASE}/api/dish/predict/`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -98,6 +99,29 @@ export default function Home() {
 
       const data = await response.json();
       console.log('Prediction:', data);
+
+      // If top prediction confidence is below 50%, tell the user the dish was not recognized
+      const topConfidence = data?.top_predictions?.[0]?.confidence;
+      if (typeof topConfidence === 'number' && topConfidence < 0.5) {
+        // show an alert and reset camera UI on OK
+        if (Platform.OS === 'web') {
+          // simple browser alert
+          alert('Dish not recognized. Please try a different image.');
+          setImage(null);
+          setPredictions(null);
+        } else {
+          Alert.alert(
+            'Dish not recognized',
+            'Please try a different image',
+            [
+              { text: 'OK', onPress: () => { setImage(null); setPredictions(null); } }
+            ]
+          );
+        }
+        return;
+      }
+
+      // Accept prediction and show results (confidence intentionally hidden in UI)
       setPredictions(data);
     } catch (err) {
       console.error('Upload/predict error:', err);
@@ -108,9 +132,110 @@ export default function Home() {
     }
   };
 
+  // Save meal to backend and refresh camera page on success
+  const saveMeal = async () => {
+    if (!predictions) return;
+    setLoading(true);
+    try {
+      const email = await AsyncStorage.getItem('email');
+      if (!email) throw new Error('No email found in storage');
+
+      const formData = new FormData();
+      formData.append('name', predictions.top_predictions?.[0]?.dish || 'Unknown Dish');
+      formData.append('nutrients', JSON.stringify(predictions.nutrients || {}));
+      formData.append('timestamp', new Date().toISOString());
+      formData.append('email', email);
+
+      // Attach image file if available
+      if (image) {
+        if (Platform.OS === 'web') {
+          const resp = await fetch(image);
+          const blob = await resp.blob();
+          const fileName = `photo.jpg`;
+          formData.append('image', blob, fileName);
+        } else {
+          const uriParts = image.split('.');
+          const fileExt = uriParts[uriParts.length - 1] || 'jpg';
+          const mimeType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
+          formData.append('image', {
+            uri: image,
+            name: `photo.${fileExt}`,
+            type: mimeType,
+          });
+        }
+      }
+
+      // Try a couple of likely local endpoints so emulator/device differences are handled
+      const candidates = Platform.OS === 'android'
+        ? ['http://10.0.2.2:8000/api/user/save-meal', `${BACKEND_BASE}/api/user/save-meal`, 'http://127.0.0.1:8000/api/user/save-meal']
+        : ['http://127.0.0.1:8000/api/user/save-meal', `${BACKEND_BASE}/api/user/save-meal`];
+
+      let resp = null;
+      let lastErr = null;
+      for (const endpoint of candidates) {
+        try {
+          console.log('Trying save endpoint', endpoint);
+          resp = await fetch(endpoint, { method: 'POST', body: formData });
+          if (resp.ok) break;
+          const text = await resp.text();
+          lastErr = new Error(`Status ${resp.status}: ${text}`);
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!resp || !resp.ok) {
+        throw lastErr || new Error('All endpoints failed');
+      }
+
+      const result = await resp.json();
+      console.log('Save result', result);
+
+      // Clear camera page state so it 'refreshes' and user sees clean Camera
+      setImage(null);
+      setPredictions(null);
+      setShowNutrients(false);
+      alert('Meal saved!');
+    } catch (err) {
+      console.error('Save meal error', err);
+      alert('Failed to save meal: ' + (err.message || err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatConfidence = (confidence) => {
     return (confidence * 100).toFixed(1) + "%";
   };
+
+  // Handler for View Nutrients button: open modal when nutrients available,
+  // otherwise show a friendly alert so the user knows why nothing opens.
+  const onViewNutrientsPress = () => {
+    if (predictions && predictions.nutrients) {
+      setShowNutrients(true);
+    } else {
+      const msg = 'Nutrient data is not available for this dish.';
+      if (Platform.OS === 'web') {
+        alert(msg);
+      } else {
+        Alert.alert('Nutrients unavailable', msg, [{ text: 'OK' }]);
+      }
+    }
+  };
+
+  // Clear camera state whenever screen is focused so it appears refreshed
+  useFocusEffect(
+    React.useCallback(() => {
+      // Reset UI state when entering the screen
+      setImage(null);
+      setPredictions(null);
+      setError(null);
+      setShowNutrients(false);
+      setLoading(false);
+      // No onCleanup necessary
+      return () => {};
+    }, [])
+  );
 
   // Return only the main nutrient fields (Calories, Carbohydrates, Fats, Protein)
   const getDisplayedNutrients = (nutrients) => {
@@ -149,7 +274,13 @@ export default function Home() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: '#FFF3EC' }}
+      // avoid using styles.container here because it sets flex:1 on the content container
+      // which prevents ScrollView from scrolling on small devices. Use explicit padding instead.
+      contentContainerStyle={{ paddingBottom: 100, padding: 20, paddingTop: 40 }}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>Add Image for Food Recognition</Text>
       <View style={styles.buttonRow}>
         <TouchableOpacity 
@@ -195,39 +326,34 @@ export default function Home() {
         </View>
       )}
 
-      {predictions && (
+      {predictions && predictions.top_predictions && predictions.top_predictions.length > 0 && (
         <View style={styles.resultsContainer}>
           <Text style={styles.resultsTitle}>Results:</Text>
-          {predictions.top_predictions.map((pred, index) => (
-            <View 
-              key={index} 
-              style={[
-                styles.predictionRow,
-                index === 0 && styles.topPrediction
-              ]}
-            >
-              <Text style={[
-                styles.dishName,
-                index === 0 && styles.topDishName
-              ]}>
-                {index === 0 ? "🏆 " : "• "}{pred.dish.replace(/_/g, " ")}
-              </Text>
-              <Text style={[
-                styles.confidence,
-                index === 0 && styles.topConfidence
-              ]}>
-                {formatConfidence(pred.confidence)}
-              </Text>
-            </View>
-          ))}
-          {predictions.nutrients && (
-            <TouchableOpacity
-              style={[styles.predictButton, {marginTop:12}]}
-              onPress={() => setShowNutrients(true)}
-            >
-              <Text style={styles.predictButtonText}>📋 View Nutrients</Text>
-            </TouchableOpacity>
-          )}
+          {/* Show only the top prediction */}
+          {(() => {
+            const pred = predictions.top_predictions[0];
+            return (
+              <View style={[styles.predictionRow, styles.topPrediction]}>
+                <Text style={[styles.dishName, styles.topDishName]}> {pred.dish.replace(/_/g, " ")}</Text>
+                {/* Confidence intentionally hidden when dish is accepted (>=50%) */}
+              </View>
+            );
+          })()}
+          {/* Always show the button but disable it when nutrients are absent */}
+          <TouchableOpacity
+            style={[styles.predictButton, { marginTop: 12 }, !predictions.nutrients && styles.predictButtonDisabledVisible]}
+            onPress={onViewNutrientsPress}
+          >
+            <Text style={styles.predictButtonText}> View Nutrients</Text>
+          </TouchableOpacity>
+          {/* Save meal directly from results */}
+          <TouchableOpacity
+            style={[styles.predictButton, { marginTop: 12, backgroundColor: '#FF6F61' }]}
+            onPress={saveMeal}
+            disabled={loading}
+          >
+            <Text style={styles.predictButtonText}> Save Meal</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -237,9 +363,9 @@ export default function Home() {
         animationType="slide"
         onRequestClose={() => setShowNutrients(false)}
       >
-        <View style={[styles.container, {paddingTop: 60}]}> 
+        <View style={[styles.container, {paddingTop: 60, flex: 1}]}> 
           <Text style={styles.title}>Nutrients</Text>
-          <ScrollView style={{marginTop:12}}>
+          <ScrollView style={{marginTop:12}} contentContainerStyle={{ paddingBottom: 40 }}>
             {predictions && predictions.nutrients ? (
               getDisplayedNutrients(predictions.nutrients).map((item, i) => (
                 <View key={i} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:8,borderBottomWidth:1,borderBottomColor:'#eee'}}>
@@ -252,64 +378,6 @@ export default function Home() {
             )}
           </ScrollView>
 
-          <TouchableOpacity
-            style={[styles.predictButton, {marginTop:16, backgroundColor:'#FF6F61'}]}
-            onPress={async () => {
-              if (!predictions || !predictions.nutrients) return;
-              const email = await AsyncStorage.getItem('email');
-              if (!email) return;
-
-              try {
-                const formData = new FormData();
-                formData.append('name', predictions.top_predictions?.[0]?.dish || 'Unknown Dish');
-                formData.append('nutrients', JSON.stringify(predictions.nutrients));
-                formData.append('timestamp', new Date().toISOString());
-                formData.append('email', email);
-
-                // Attach image file for backend to store. On web, fetch the blob first.
-                let fileObj = null;
-                if (Platform.OS === 'web') {
-                  const resp = await fetch(image);
-                  const blob = await resp.blob();
-                  const fileName = `photo.jpg`;
-                  fileObj = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
-                  formData.append('image', fileObj);
-                } else {
-                  // Native: supply uri/name/type object
-                  const uriParts = image.split('.');
-                  const fileExt = uriParts[uriParts.length - 1] || 'jpg';
-                  const mimeType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
-                  formData.append('image', {
-                    uri: image,
-                    name: `photo.${fileExt}`,
-                    type: mimeType,
-                  });
-                }
-
-                const resp = await fetch('http://127.0.0.1:8000/api/user/save-meal', {
-                  method: 'POST',
-                  body: formData,
-                });
-                if (!resp.ok) throw new Error('Save failed: ' + resp.status);
-                const result = await resp.json();
-                // Use returned meal (with server image URL) to store locally
-                const savedMeal = result.meal || null;
-                if (savedMeal) {
-                  const prev = await AsyncStorage.getItem('savedMeals_' + email);
-                  const arr = prev ? JSON.parse(prev) : [];
-                  // Ensure timestamp and image values are strings for frontend
-                  arr.unshift(savedMeal);
-                  await AsyncStorage.setItem('savedMeals_' + email, JSON.stringify(arr));
-                }
-                alert('Meal saved!');
-              } catch (err) {
-                console.error('Save meal error', err);
-                alert('Failed to save meal');
-              }
-            }}
-          >
-            <Text style={styles.predictButtonText}>💾 Save Meal</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={[styles.predictButton, {marginTop:10}]} onPress={() => setShowNutrients(false)}>
             <Text style={styles.predictButtonText}>Close</Text>
           </TouchableOpacity>
@@ -330,7 +398,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 24,
-    color: "#0D2B3A",
+    marginTop: 30,
+    color: "#0e4f11ff",
     textAlign: "center",
   },
   buttonRow: {
@@ -387,6 +456,10 @@ const styles = StyleSheet.create({
   },
   predictButtonDisabled: {
     opacity: 0.7,
+  },
+  predictButtonDisabledVisible: {
+    backgroundColor: '#7A8B86',
+    opacity: 0.9,
   },
   predictButtonText: {
     color: "#fff",

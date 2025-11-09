@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { BACKEND_BASE } from './config';
 
 export default function Login() {
   const router = useRouter();
@@ -18,7 +19,6 @@ export default function Login() {
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [rememberMe, setRememberMe] = React.useState(false);
-  const [agree, setAgree] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -39,7 +39,7 @@ export default function Login() {
       const params = new URLSearchParams();
       params.append("username", email);
       params.append("password", password);
-      const response = await fetch("http://127.0.0.1:8000/api/user/token", {
+      const response = await fetch(`${BACKEND_BASE}/api/user/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -88,6 +88,7 @@ export default function Login() {
         <Text style={styles.cardSubtitle}>
           Sign in to track your progress and stay committed to your health goals.
         </Text>
+        {error ? <Text style={[styles.errorText, {color: '#d32f2f'}]}>{error}</Text> : null}
 
         <View style={styles.fieldLabel}><Text style={styles.labelText}>Email</Text></View>
         <View style={styles.inputBox}>
@@ -97,7 +98,7 @@ export default function Login() {
             placeholder="Email"
             placeholderTextColor="#A0A0A0"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text)=>{ setEmail(text); if (error) setError(''); }}
             autoCapitalize="none"
             keyboardType="email-address"
             selectionColor="#0e4f11ff"
@@ -114,7 +115,7 @@ export default function Login() {
             placeholder="Password"
             placeholderTextColor="#A0A0A0"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text)=>{ setPassword(text); if (error) setError(''); }}
             secureTextEntry={!showPassword}
             selectionColor="#0e4f11ff"
             underlineColorAndroid="transparent"
@@ -128,13 +129,6 @@ export default function Login() {
         <TouchableOpacity style={styles.forgotRight} onPress={() => router.push("/forgot-password")}>
           <Text style={styles.forgotText}>Forgot password?</Text>
         </TouchableOpacity>
-
-        <View style={styles.agreeRow}>
-          <TouchableOpacity onPress={() => setAgree(prev=>!prev)} style={styles.agreeCheckbox}>
-            {agree && <Ionicons name="checkmark" size={16} color="#0e4f11ff" />}
-          </TouchableOpacity>
-          <Text style={styles.agreeText}>I agree to Nutrio <Text style={styles.termsText} onPress={() => router.push('/screens/TermsAndConditions')}>Terms & Conditions</Text></Text>
-        </View>
       </View>
 
       <View style={styles.centerSignupPrompt}>
@@ -142,9 +136,9 @@ export default function Login() {
       </View>
 
       <TouchableOpacity
-        style={[styles.signupButton, (!agree || loading) && styles.loginButtonDisabled]}
+        style={[styles.signupButton, loading && styles.loginButtonDisabled]}
         onPress={handleLogin}
-        disabled={!agree || loading}
+        disabled={loading}
       >
         <Text style={styles.signupButtonText}>{loading? 'Please wait...' : 'Sign In'}</Text>
       </TouchableOpacity>
