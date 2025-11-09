@@ -432,7 +432,7 @@ export default function Home({ navigation }) {
               <Text style={styles.motivationTextInline}>"{randomQuote()}"</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
-              <CircularProgress size={120} percentage={caloriesPercent} animatedValue={calAnim} strokeWidth={12} centerLabel={`${caloriesConsumed} kcal`} forceFull={true} />
+              <CircularProgress size={120} percentage={caloriesPercent} animatedValue={calAnim} strokeWidth={12} centerLabel={`${caloriesConsumed} kcal`} />
               <View style={{ height: 8 }} />
               <Text style={styles.caloriesSmall}>{caloriesConsumed} / {targetCalories} kcal</Text>
             </View>
@@ -445,21 +445,21 @@ export default function Home({ navigation }) {
           <View style={[styles.statCard, styles.shadow]}>
             <Text style={styles.statLabel}>Protein</Text>
             <View style={{ height: 8 }} />
-            <CircularProgress size={80} percentage={Math.min(100, Math.round((proteinConsumed / Math.max(1, targetProtein)) * 100))} strokeWidth={10} centerLabel={`${proteinConsumed}g`} forceFull={true} />
+            <CircularProgress size={80} percentage={Math.min(100, Math.round((proteinConsumed / Math.max(1, targetProtein)) * 100))} strokeWidth={10} centerLabel={`${proteinConsumed}g`} />
             <Text style={styles.statValue}>{proteinConsumed}g</Text>
             <Text style={styles.smallMuted}>{Math.round((proteinConsumed / Math.max(1, targetProtein)) * 100)}% of {targetProtein}g</Text>
           </View>
           <View style={[styles.statCard, styles.shadow]}>
             <Text style={styles.statLabel}>Carbs</Text>
             <View style={{ height: 8 }} />
-            <CircularProgress size={80} percentage={Math.min(100, Math.round((carbsConsumed / Math.max(1, targetCarbs)) * 100))} strokeWidth={10} centerLabel={`${carbsConsumed}g`} forceFull={true} />
+            <CircularProgress size={80} percentage={Math.min(100, Math.round((carbsConsumed / Math.max(1, targetCarbs)) * 100))} strokeWidth={10} centerLabel={`${carbsConsumed}g`} />
             <Text style={styles.statValue}>{carbsConsumed}g</Text>
             <Text style={styles.smallMuted}>{Math.round((carbsConsumed / Math.max(1, targetCarbs)) * 100)}% of {targetCarbs}g</Text>
           </View>
           <View style={[styles.statCard, styles.shadow]}>
             <Text style={styles.statLabel}>Fats</Text>
             <View style={{ height: 8 }} />
-            <CircularProgress size={80} percentage={Math.min(100, Math.round((fatsConsumed / Math.max(1, targetFats)) * 100))} strokeWidth={10} centerLabel={`${fatsConsumed}g`} forceFull={true} />
+            <CircularProgress size={80} percentage={Math.min(100, Math.round((fatsConsumed / Math.max(1, targetFats)) * 100))} strokeWidth={10} centerLabel={`${fatsConsumed}g`} />
             <Text style={styles.statValue}>{fatsConsumed}g</Text>
             <Text style={styles.smallMuted}>{Math.round((fatsConsumed / Math.max(1, targetFats)) * 100)}% of {targetFats}g</Text>
           </View>
