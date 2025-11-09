@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useFocusEffect } from 'expo-router';
-import { formatTimePK, formatHeaderDatePK, addDaysISO, toISODate, parseToDateObj, toPKDate } from './utils/dateUtils';
+import { formatTimePK, formatHeaderDatePK, addDaysISO, toISODate, parseToDateObj, toPKDate } from './_utils/dateUtils';
 import {
   View,
   Text,
@@ -51,6 +51,7 @@ export default function Home({ navigation }) {
 
   const { width } = useWindowDimensions();
   const isSmall = width < 700;
+  // Use the `forceFull` prop on each CircularProgress call to temporarily force the arc to render.
 
   // animations
   const heroAnim = useRef(new Animated.Value(0)).current; // opacity/translate
@@ -553,7 +554,7 @@ export default function Home({ navigation }) {
   );
 }
 
-function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWidth = 12, centerLabel = null }) {
+function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWidth = 12, centerLabel = null, forceFull = false }) {
   // SVG based circular progress for more accurate arc and gradient
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
@@ -569,9 +570,9 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {/* Use a solid stroke color for reliable rendering on Android/Expo */}
-        <G rotation="-90" origin={`${center} ${center}`}>
+        <G rotation={-90} originX={center} originY={center}>
           <SvgCircle
             cx={center}
             cy={center}
@@ -580,16 +581,16 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
             strokeWidth={strokeWidth}
             fill="none"
           />
-          {animatedValue ? (
-            <AnimatedSvgCircle
+              {animatedValue ? (
+              <AnimatedSvgCircle
               cx={center}
               cy={center}
               r={radius}
               stroke="#065F46"
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              strokeDasharray={[circumference]}
-              strokeDashoffset={animatedValue.interpolate ? animatedValue.interpolate({ inputRange: [0, 100], outputRange: [circumference, 0] }) : strokeDashoffset}
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={forceFull ? 0 : (animatedValue.interpolate ? animatedValue.interpolate({ inputRange: [0, 100], outputRange: [circumference, 0] }) : strokeDashoffset)}
               fill="none"
             />
           ) : (
@@ -600,8 +601,8 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
               stroke="#065F46"
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              strokeDasharray={[circumference]}
-              strokeDashoffset={strokeDashoffset}
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={forceFull ? 0 : strokeDashoffset}
               fill="none"
             />
           )}

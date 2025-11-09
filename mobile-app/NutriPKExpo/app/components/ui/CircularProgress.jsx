@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle as SvgCircle, G } from 'react-native-svg';
 
-export const CircularProgress = ({ percentage = 0, value, label, unit = '', color = '#4CAF50', radius = 40, strokeWidth = 10 }) => {
+export const CircularProgress = ({ percentage = 0, value, label, unit = '', color = '#4CAF50', radius = 40, strokeWidth = 10, forceFull = false }) => {
   const size = radius * 2;
   const center = size / 2;
   const circumference = 2 * Math.PI * (radius - strokeWidth / 2);
@@ -25,8 +25,8 @@ export const CircularProgress = ({ percentage = 0, value, label, unit = '', colo
           <Text style={styles.label}>{label}</Text>
         </View>
       </View>
-      <Svg style={StyleSheet.absoluteFill}>
-        <G rotation="-90" origin={`${center} ${center}`}>
+      <Svg style={StyleSheet.absoluteFill} width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <G rotation={-90} originX={center} originY={center}>
           <SvgCircle
             cx={center}
             cy={center}
@@ -41,8 +41,8 @@ export const CircularProgress = ({ percentage = 0, value, label, unit = '', colo
             r={radius - strokeWidth / 2}
             stroke={color || '#065F46'}
             strokeWidth={strokeWidth}
-            strokeDasharray={[circumference]}
-            strokeDashoffset={strokeDashoffset}
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={forceFull ? 0 : strokeDashoffset}
             strokeLinecap="round"
             fill="none"
           />
