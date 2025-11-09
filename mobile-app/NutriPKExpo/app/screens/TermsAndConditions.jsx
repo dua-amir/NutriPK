@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { useRouter } from "expo-router";
 
 const THEME = "#0e4f11ff";
@@ -10,7 +16,10 @@ export default function TermsAndConditions() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backTouch} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backTouch}
+          onPress={() => router.back()}
+        >
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Terms & Conditions</Text>
@@ -18,16 +27,21 @@ export default function TermsAndConditions() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.paragraph}>
-          Welcome to NutriPK!
-          By using our app, you agree to maintain accurate information about your health and activity. NutriPK provides guidance and tracking tools to help you stay healthy, but it should not replace professional medical advice.
+          Welcome to NutriPK! By using our app, you agree to maintain accurate
+          information about your health and activity. NutriPK provides guidance
+          and tracking tools to help you stay healthy, but it should not replace
+          professional medical advice.
         </Text>
 
         <Text style={styles.paragraph}>
-          We respect your privacy, your personal data and progress logs remain secure and are used only to improve your wellness experience within the app.
+          We respect your privacy, your personal data and progress logs remain
+          secure and are used only to improve your wellness experience within
+          the app.
         </Text>
 
         <Text style={styles.paragraph}>
-          By continuing to use NutriPK, you accept these terms and commit to using the app responsibly to achieve your fitness goals.
+          By continuing to use NutriPK, you accept these terms and commit to
+          using the app responsibly to achieve your fitness goals.
         </Text>
       </ScrollView>
     </View>
@@ -38,6 +52,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+    marginTop: 30,
   },
   header: {
     flexDirection: "row",
