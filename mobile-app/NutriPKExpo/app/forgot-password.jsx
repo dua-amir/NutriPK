@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { BACKEND_BASE } from './config';
+import { BACKEND_BASE } from "./config";
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function ForgotPassword() {
       // Optimistic navigation: open SendOTP screen immediately, then send OTP in background
       router.push(`/screens/SendOTP?email=${encodeURIComponent(email)}`);
       // still send OTP request so backend sends email
-  fetch(`${BACKEND_BASE}/api/user/send-otp`, {
+      fetch(`${BACKEND_BASE}/api/user/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -37,11 +37,11 @@ export default function ForgotPassword() {
         .then((result) => {
           if (!result.ok) {
             // log or optionally notify user
-            console.warn('Failed to send OTP:', result.data);
+            console.warn("Failed to send OTP:", result.data);
           }
         })
         .catch((err) => {
-          console.warn('Network error sending OTP:', err);
+          console.warn("Network error sending OTP:", err);
         });
     } catch (err) {
       setError("Network error. Please try again.");
@@ -61,7 +61,8 @@ export default function ForgotPassword() {
       <View style={styles.topContent}>
         <Text style={styles.title}>Forgot Password?</Text>
         <Text style={styles.subtitle}>
-          Please enter your registered email address below. We'll send you a One-Time Password (OTP) to reset your password securely.
+          Please enter your registered email address below. We'll send you a
+          One-Time Password (OTP) to reset your password securely.
         </Text>
 
         <Text style={styles.label}>Registered Email Address</Text>
@@ -85,7 +86,11 @@ export default function ForgotPassword() {
 
       {/* bottom button */}
       <View style={styles.bottomWrap} pointerEvents="box-none">
-        <TouchableOpacity style={styles.sendButton} activeOpacity={0.9} onPress={handleReset}>
+        <TouchableOpacity
+          style={styles.sendButton}
+          activeOpacity={0.9}
+          onPress={handleReset}
+        >
           <Text style={styles.sendButtonText}>Send OTP Code</Text>
         </TouchableOpacity>
       </View>
@@ -96,10 +101,10 @@ export default function ForgotPassword() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: '#FFF3EC',
-    paddingTop: 18,
+    backgroundColor: "#FFF3EC",
+    paddingTop: 38,
     paddingHorizontal: 20,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   headerBack: {
     paddingTop: 8,
@@ -110,72 +115,72 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#0e4f11ff',
+    fontWeight: "700",
+    color: "#0e4f11ff",
     marginTop: 6,
     marginBottom: 8,
   },
   subtitle: {
-    color: '#7B8794',
+    color: "#7B8794",
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 18,
   },
   label: {
-    color: '#0e4f11ff',
+    color: "#0e4f11ff",
     fontSize: 16,
     marginBottom: 8,
   },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: "#F0F0F0",
   },
   inputIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 10,
     borderWidth: 1,
-    borderColor: '#ECECEC',
+    borderColor: "#ECECEC",
   },
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#222',
+    color: "#222",
   },
   errorText: {
-    color: 'red',
+    color: "red",
     marginTop: 8,
     marginBottom: 6,
   },
   bottomWrap: {
-    paddingBottom: 18,
+    paddingBottom: 48,
     paddingHorizontal: 10,
   },
   sendButton: {
-    backgroundColor: '#0e4f11ff',
+    backgroundColor: "#0e4f11ff",
     height: 48,
     borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
   },
   sendButtonText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });
