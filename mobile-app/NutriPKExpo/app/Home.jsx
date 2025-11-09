@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useFocusEffect } from 'expo-router';
-import { formatTimePK, formatHeaderDatePK, addDaysISO, toISODate, parseToDateObj, toPKDate } from './utils/dateUtils';
+import { formatTimePK, formatHeaderDatePK, addDaysISO, toISODate, parseToDateObj, toPKDate } from './_utils/dateUtils';
 import {
   View,
   Text,
@@ -51,6 +51,7 @@ export default function Home({ navigation }) {
 
   const { width } = useWindowDimensions();
   const isSmall = width < 700;
+  // Use the `forceFull` prop on each CircularProgress call to temporarily force the arc to render.
 
   // animations
   const heroAnim = useRef(new Animated.Value(0)).current; // opacity/translate
@@ -431,7 +432,7 @@ export default function Home({ navigation }) {
               <Text style={styles.motivationTextInline}>"{randomQuote()}"</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
-              <CircularProgress size={120} percentage={caloriesPercent} animatedValue={calAnim} strokeWidth={12} centerLabel={`${caloriesConsumed} kcal`} />
+              <CircularProgress size={120} percentage={caloriesPercent} animatedValue={calAnim} strokeWidth={12} centerLabel={`${caloriesConsumed} kcal`} forceFull={true} />
               <View style={{ height: 8 }} />
               <Text style={styles.caloriesSmall}>{caloriesConsumed} / {targetCalories} kcal</Text>
             </View>
@@ -444,21 +445,21 @@ export default function Home({ navigation }) {
           <View style={[styles.statCard, styles.shadow]}>
             <Text style={styles.statLabel}>Protein</Text>
             <View style={{ height: 8 }} />
-            <CircularProgress size={80} percentage={Math.min(100, Math.round((proteinConsumed / Math.max(1, targetProtein)) * 100))} strokeWidth={10} centerLabel={`${proteinConsumed}g`} />
+            <CircularProgress size={80} percentage={Math.min(100, Math.round((proteinConsumed / Math.max(1, targetProtein)) * 100))} strokeWidth={10} centerLabel={`${proteinConsumed}g`} forceFull={true} />
             <Text style={styles.statValue}>{proteinConsumed}g</Text>
             <Text style={styles.smallMuted}>{Math.round((proteinConsumed / Math.max(1, targetProtein)) * 100)}% of {targetProtein}g</Text>
           </View>
           <View style={[styles.statCard, styles.shadow]}>
             <Text style={styles.statLabel}>Carbs</Text>
             <View style={{ height: 8 }} />
-            <CircularProgress size={80} percentage={Math.min(100, Math.round((carbsConsumed / Math.max(1, targetCarbs)) * 100))} strokeWidth={10} centerLabel={`${carbsConsumed}g`} />
+            <CircularProgress size={80} percentage={Math.min(100, Math.round((carbsConsumed / Math.max(1, targetCarbs)) * 100))} strokeWidth={10} centerLabel={`${carbsConsumed}g`} forceFull={true} />
             <Text style={styles.statValue}>{carbsConsumed}g</Text>
             <Text style={styles.smallMuted}>{Math.round((carbsConsumed / Math.max(1, targetCarbs)) * 100)}% of {targetCarbs}g</Text>
           </View>
           <View style={[styles.statCard, styles.shadow]}>
             <Text style={styles.statLabel}>Fats</Text>
             <View style={{ height: 8 }} />
-            <CircularProgress size={80} percentage={Math.min(100, Math.round((fatsConsumed / Math.max(1, targetFats)) * 100))} strokeWidth={10} centerLabel={`${fatsConsumed}g`} />
+            <CircularProgress size={80} percentage={Math.min(100, Math.round((fatsConsumed / Math.max(1, targetFats)) * 100))} strokeWidth={10} centerLabel={`${fatsConsumed}g`} forceFull={true} />
             <Text style={styles.statValue}>{fatsConsumed}g</Text>
             <Text style={styles.smallMuted}>{Math.round((fatsConsumed / Math.max(1, targetFats)) * 100)}% of {targetFats}g</Text>
           </View>
@@ -553,7 +554,7 @@ export default function Home({ navigation }) {
   );
 }
 
-function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWidth = 12, centerLabel = null }) {
+function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWidth = 12, centerLabel = null, forceFull = false }) {
   // SVG based circular progress for more accurate arc and gradient
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
@@ -569,9 +570,9 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {/* Use a solid stroke color for reliable rendering on Android/Expo */}
-        <G rotation="-90" origin={`${center} ${center}`}>
+        <G rotation={-90} originX={center} originY={center}>
           <SvgCircle
             cx={center}
             cy={center}
@@ -580,16 +581,16 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
             strokeWidth={strokeWidth}
             fill="none"
           />
-          {animatedValue ? (
-            <AnimatedSvgCircle
+              {animatedValue ? (
+              <AnimatedSvgCircle
               cx={center}
               cy={center}
               r={radius}
               stroke="#065F46"
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              strokeDasharray={[circumference]}
-              strokeDashoffset={animatedValue.interpolate ? animatedValue.interpolate({ inputRange: [0, 100], outputRange: [circumference, 0] }) : strokeDashoffset}
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={forceFull ? 0 : (animatedValue.interpolate ? animatedValue.interpolate({ inputRange: [0, 100], outputRange: [circumference, 0] }) : strokeDashoffset)}
               fill="none"
             />
           ) : (
@@ -600,8 +601,8 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
               stroke="#065F46"
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              strokeDasharray={[circumference]}
-              strokeDashoffset={strokeDashoffset}
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={forceFull ? 0 : strokeDashoffset}
               fill="none"
             />
           )}

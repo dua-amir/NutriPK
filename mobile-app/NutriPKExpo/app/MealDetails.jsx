@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from "react-native";
-import { formatDateTimePK } from './utils/dateUtils';
+import { formatDateTimePK } from './_utils/dateUtils';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { BACKEND_BASE } from './config';
 

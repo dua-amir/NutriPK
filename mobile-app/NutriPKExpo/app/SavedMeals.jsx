@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 
-import { parseToDateObj, formatTimePK, formatDatePK } from './utils/dateUtils';
+import { parseToDateObj, formatTimePK, formatDatePK } from './_utils/dateUtils';
 import { BACKEND_BASE } from './config';
 
 function getDayLabel(dateStr) {
