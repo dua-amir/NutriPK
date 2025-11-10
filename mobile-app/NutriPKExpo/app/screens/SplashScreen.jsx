@@ -7,52 +7,53 @@ export default function SplashScreen() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Navigate to onboarding after splash
       router.replace("/Onboarding1");
     }, 3000);
     return () => clearTimeout(timer);
   }, [router]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.center}>
+    <View style={styles.containerStyle}>
+      <View style={styles.centerWrapper}>
         <Image
           source={require("../../assets/images/logo.png")}
-          style={styles.logo}
+          style={styles.logoWrapper}
           resizeMode="contain"
         />
-        <Text style={styles.title}>NutriPK</Text>
+        <Text style={styles.titleWrapper}>NutriPK</Text>
       </View>
 
-      <ActivityIndicator style={styles.spinner} size="large" color="#0e4f11ff" />
+      <ActivityIndicator style={styles.spinnerWrapper} size="large" color="#0e4f11ff" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  containerStyle: {
     flex: 1,
     backgroundColor: "#FFF3EC", 
     alignItems: "center",
     justifyContent: "center",
   },
-  center: {
+  centerWrapper: {
     alignItems: "center",
     justifyContent: "center",
   },
-  logo: {
+  logoWrapper: {
     width: 200,
     height: 200,
+    marginBottom: 10, // added slight spacing
   },
-  title: {
+  titleWrapper: {
     color: "#0e4f11ff",
     fontSize: 38,
     fontWeight: "700",
     marginTop: 12,
+    marginBottom: 8, // new margin for spacing
   },
-  spinner: {
+  spinnerWrapper: {
     position: "absolute",
-    bottom: 40,
+    bottom: 50, // slightly adjusted bottom
     alignSelf: "center",
   },
 });
