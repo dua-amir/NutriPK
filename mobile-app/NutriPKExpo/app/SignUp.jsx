@@ -13,7 +13,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
 // Change this to your PC's local IP address
-import { BACKEND_BASE } from './config';
+import { BACKEND_BASE } from "./config";
 const API_BASE_URL = BACKEND_BASE; // central config
 
 export default function Signup() {
@@ -31,7 +31,7 @@ export default function Signup() {
 
   const handleSignup = async (event) => {
     if (event && event.preventDefault) event.preventDefault();
-      setError("");
+    setError("");
     if (!email || !password || !confirmPassword) {
       setError("Please fill all fields.");
       return;
@@ -46,18 +46,22 @@ export default function Signup() {
       setError("Passwords do not match.");
       return;
     }
-  // Strong password check
-  // Original regex had missing escapes after lookahead anchors; use a well-tested pattern
-  // Requires at least one lowercase, one uppercase, one digit, one special char, min length 8
-  const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    // Strong password check
+    // Original regex had missing escapes after lookahead anchors; use a well-tested pattern
+    // Requires at least one lowercase, one uppercase, one digit, one special char, min length 8
+    const strongRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
     if (!strongRegex.test(password)) {
-      setError("Password must be at least 8 characters, include a number, a symbol, a lowercase and an uppercase letter.");
+      setError(
+        "Password must be at least 8 characters, include a number, a symbol, a lowercase and an uppercase letter."
+      );
       return;
     }
     // Check password length (bcrypt limit is 72 bytes)
     // TextEncoder may not be available in some RN environments; guard with a fallback
     try {
-      const encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+      const encoder =
+        typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
       if (encoder && encoder.encode(password).length > 72) {
         setError("Password is too long. Please use a shorter password.");
         return;
@@ -65,7 +69,9 @@ export default function Signup() {
     } catch (e) {
       // If TextEncoder isn't available, skip the byte-length check (rare on modern RN runtimes)
       // This is a safe degradation for client-side only; server still enforces limits.
-      console.warn('TextEncoder not available, skipping byte-length check for password');
+      console.warn(
+        "TextEncoder not available, skipping byte-length check for password"
+      );
     }
 
     setLoading(true);
@@ -124,15 +130,24 @@ export default function Signup() {
       <View style={styles.cardTop}>
         <Text style={styles.title}>Join NutriPK Today!</Text>
         <Text style={styles.cardSubtitle}>
-          Create a NutriPK account to track your meals, stay active, and achieve your health goals.
+          Create a NutriPK account to track your meals, stay active, and achieve
+          your health goals.
         </Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <View style={styles.fieldLabels}><Text style={styles.labelText}>Email</Text></View>
+        <View style={styles.fieldLabel}>
+          <Text style={styles.labelText}>Email</Text>
+        </View>
         <View style={styles.inputBox}>
-          <Image source={require("../assets/images/email-logo.png")} style={styles.fieldIcon} />
+          <Image
+            source={require("../assets/images/email-logo.png")}
+            style={styles.fieldIcon}
+          />
           <TextInput
-            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[
+              styles.inputBoxInput,
+              Platform.OS === "web" && { caretColor: "transparent" },
+            ]}
             placeholder="Email"
             placeholderTextColor="#A0A0A0"
             value={email}
@@ -144,11 +159,19 @@ export default function Signup() {
           />
         </View>
 
-        <View style={styles.fieldLabels}><Text style={styles.labelText}>Password</Text></View>
+        <View style={styles.fieldLabel}>
+          <Text style={styles.labelText}>Password</Text>
+        </View>
         <View style={styles.inputBox}>
-          <Image source={require("../assets/images/password-logo.png")} style={styles.fieldIcon} />
+          <Image
+            source={require("../assets/images/password-logo.png")}
+            style={styles.fieldIcon}
+          />
           <TextInput
-            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[
+              styles.inputBoxInput,
+              Platform.OS === "web" && { caretColor: "transparent" },
+            ]}
             placeholder="Password"
             placeholderTextColor="#A0A0A0"
             value={password}
@@ -157,16 +180,31 @@ export default function Signup() {
             selectionColor="#0e4f11ff"
             underlineColorAndroid="transparent"
           />
-          <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword((p)=>!p)}>
-            <Ionicons name={showPassword?"eye-outline":"eye-off-outline"} size={20} color="#4E944F" />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowPassword((p) => !p)}
+          >
+            <Ionicons
+              name={showPassword ? "eye-outline" : "eye-off-outline"}
+              size={20}
+              color="#4E944F"
+            />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.fieldLabels}><Text style={styles.labelText}>Confirm Password</Text></View>
+        <View style={styles.fieldLabel}>
+          <Text style={styles.labelText}>Confirm Password</Text>
+        </View>
         <View style={styles.inputBox}>
-          <Image source={require("../assets/images/password-logo.png")} style={styles.fieldIcon} />
+          <Image
+            source={require("../assets/images/password-logo.png")}
+            style={styles.fieldIcon}
+          />
           <TextInput
-            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[
+              styles.inputBoxInput,
+              Platform.OS === "web" && { caretColor: "transparent" },
+            ]}
             placeholder="Confirm Password"
             placeholderTextColor="#A0A0A0"
             value={confirmPassword}
@@ -175,31 +213,61 @@ export default function Signup() {
             selectionColor="#0e4f11ff"
             underlineColorAndroid="transparent"
           />
-          <TouchableOpacity style={styles.eyeButton} onPress={() => setShowConfirmPassword((p)=>!p)}>
-            <Ionicons name={showConfirmPassword?"eye-outline":"eye-off-outline"} size={20} color="#4E944F" />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowConfirmPassword((p) => !p)}
+          >
+            <Ionicons
+              name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+              size={20}
+              color="#4E944F"
+            />
           </TouchableOpacity>
         </View>
 
         <View style={styles.agreeRow}>
-          <TouchableOpacity onPress={() => setAgree(prev=>!prev)} style={styles.agreeCheckbox}>
+          <TouchableOpacity
+            onPress={() => setAgree((prev) => !prev)}
+            style={styles.agreeCheckbox}
+          >
             {agree && <Ionicons name="checkmark" size={16} color="#0e4f11ff" />}
           </TouchableOpacity>
-          <Text style={styles.agreeText}>I agree to Nutrio <Text style={styles.termsText} onPress={() => router.push('/screens/TermsAndConditions')}>Terms & Conditions</Text></Text>
+          <Text style={styles.agreeText}>
+            I agree to Nutrio{" "}
+            <Text
+              style={styles.termsText}
+              onPress={() => router.push("/screens/TermsAndConditions")}
+            >
+              Terms & Conditions
+            </Text>
+          </Text>
         </View>
-
       </View>
 
       <View style={styles.centerSignupPrompt}>
-        <Text style={styles.centerPromptText}>Already have an account? <Text style={styles.signinLinkLarge} onPress={() => router.push("/Login")}>Sign In</Text></Text>
+        <Text style={styles.centerPromptText}>
+          Already have an account?{" "}
+          <Text
+            style={styles.signinLinkLarge}
+            onPress={() => router.push("/Login")}
+          >
+            Sign In
+          </Text>
+        </Text>
       </View>
 
       <TouchableOpacity
-        style={[styles.signupButton, (!agree || loading) && styles.loginButtonDisabled]}
+        style={[
+          styles.signupButton,
+          (!agree || loading) && styles.loginButtonDisabled,
+        ]}
         activeOpacity={0.85}
         onPress={onPressSignup}
         disabled={loading}
       >
-        <Text style={styles.signupButtonText}>{loading ? "Signing up..." : "Sign Up"}</Text>
+        <Text style={styles.signupButtonText}>
+          {loading ? "Signing up..." : "Sign Up"}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -217,6 +285,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
+    marginTop: Platform.OS === "android" ? 30 : 50,
     left: 14,
     top: 18,
     zIndex: 10,
@@ -255,126 +324,162 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTop: {
-    width: '100%',
+    width: "100%",
     padding: 18,
-    backgroundColor: '#fff0',
+    backgroundColor: "#fff0",
   },
   cardSubtitle: {
-    color: '#7B8794',
+    color: "#7B8794",
     fontSize: 14,
     marginBottom: 14,
   },
-  fieldLabels: {
-    width: '100%', marginBottom: 6,
+  fieldLabel: {
+    width: "100%",
+    marginBottom: 6,
   },
   labelText: {
-    color: '#0e4f11ff',
+    color: "#0e4f11ff",
     fontSize: 18,
     marginLeft: 6,
     marginBottom: 4,
   },
   inputBox: {
-    width: '100%',
+    width: "100%",
     height: 48,
-    backgroundColor: '#F6F8F7',
+    backgroundColor: "#F6F8F7",
     borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#0e4f11ff',
+    borderColor: "#0e4f11ff",
   },
   fieldIcon: {
     width: 20,
     height: 20,
     marginRight: 10,
   },
-  inputBoxinput: {
+  inputBoxInput: {
     flex: 1,
     fontSize: 15,
-    color: '#222',
+    color: "#222",
   },
   agreeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
     marginTop: 6,
   },
   agreeCheckbox: {
     width: 20,
     height: 20,
     borderWidth: 1,
-    borderColor: '#0e4f11ff',
+    borderColor: "#0e4f11ff",
     borderRadius: 4,
     marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
   },
   agreeText: {
-    color: '#55616A',
+    color: "#55616A",
     fontSize: 14,
   },
   forgotRight: {
-    alignSelf: 'flex-end',  marginTop: -6, marginBottom: 6,
+    alignSelf: "flex-end",
+    marginTop: -6,
+    marginBottom: 6,
   },
   centerSignupPrompt: {
-    width: '100%', alignItems: 'center', marginBottom: 8,
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 8,
   },
   errorText: {
-    color: 'red', marginTop: 8, marginBottom: 6, fontSize: 14,
+    color: "red",
+    marginTop: 8,
+    marginBottom: 6,
+    fontSize: 14,
   },
   centerPromptText: {
-    color: '#55616A', fontSize: 14,
+    color: "#55616A",
+    fontSize: 14,
   },
   signinLinkLarge: {
-    color: '#0e4f11ff', fontWeight: '700',
+    color: "#0e4f11ff",
+    fontWeight: "700",
   },
   alreadyAccount: {
-    color: '#7B8794',fontSize: 13,
+    color: "#7B8794",
+    fontSize: 13,
   },
   signinLink: {
-    color: '#0e4f11ff',  fontWeight: '600',
+    color: "#0e4f11ff",
+    fontWeight: "600",
   },
   orText: {
-    color: '#7B8794',  fontSize: 13, textAlign: 'center', marginTop: 10,marginBottom: 8,
+    color: "#7B8794",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 10,
+    marginBottom: 8,
   },
   socialRow: {
-    flexDirection: 'row',justifyContent: 'space-between', width: '70%',
-    alignSelf: 'center', marginTop: 6,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "70%",
+    alignSelf: "center",
+    marginTop: 6,
   },
   socialCircle: {
-    width: 44,height: 44,
-    borderRadius: 22,backgroundColor: '#fff',
-    alignItems: 'center',justifyContent: 'center',
-    borderWidth: 1, borderColor: '#ECECEC',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#ECECEC",
   },
   socialIcon: {
-    width: 22, height: 22,
+    width: 22,
+    height: 22,
   },
   signupButton: {
-    width: '92%', height: 48,
-    backgroundColor: '#0e4f11ff', borderRadius: 24, alignItems: 'center',
-    justifyContent: 'center', marginBottom: 12,
+    width: "92%",
+    height: 48,
+    backgroundColor: "#0e4f11ff",
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
   signupButtonText: {
-    color: '#fff', fontSize: 16,
-    fontWeight: '700',
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
   cardTitle: {
-    fontSize: 22, fontWeight: "bold",
-    color: "#0e4f11ff", marginBottom: 18, alignSelf: "flex-start",
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#0e4f11ff",
+    marginBottom: 18,
+    alignSelf: "flex-start",
     letterSpacing: 0.5,
   },
   inputContainer: {
-    width: "100%",alignItems: "center",
+    width: "100%",
+    alignItems: "center",
     marginBottom: 0,
   },
   input: {
     width: "100%",
-    height: 44, backgroundColor: "#E0E0D5",
-    borderRadius: 8, borderWidth: 0, paddingHorizontal: 16,
+    height: 44,
+    backgroundColor: "#E0E0D5",
+    borderRadius: 8,
+    borderWidth: 0,
+    paddingHorizontal: 16,
     fontSize: 16,
     marginBottom: 12,
     color: "#0e4f11ff",

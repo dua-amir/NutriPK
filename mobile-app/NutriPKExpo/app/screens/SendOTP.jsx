@@ -8,7 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { BACKEND_BASE } from "../config";
 
@@ -16,26 +16,8 @@ const THEME = "#FF7F32";
 
 export default function SendOTP() {
   const router = useRouter();
-  // useSearchParams isn't available on some web entry bundles; attempt optional import at runtime
-  let email = "";
-  try {
-    // attempt to require useSearchParams dynamically
-    // eslint-disable-next-line global-require
-    const { useSearchParams } = require("expo-router");
-    const sp = useSearchParams();
-    email = sp?.email || "";
-  } catch (e) {
-    // fallback: try to parse window.location.search (web)
-    try {
-      const qs = typeof window !== "undefined" ? window.location.search : "";
-      if (qs) {
-        const params = new URLSearchParams(qs);
-        email = params.get("email") || "";
-      }
-    } catch (e2) {
-      email = "";
-    }
-  }
+  const params = useLocalSearchParams();
+  const [email, setEmail] = React.useState(params?.email || "");
 
   const [otp, setOtp] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -74,6 +56,10 @@ export default function SendOTP() {
       setError("Please enter the full 6-digit OTP.");
       return;
     }
+    if (!email) {
+      setError("No email found. Please go back and enter your email.");
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch(`${BACKEND_BASE}/api/user/verify-otp`, {
@@ -83,7 +69,9 @@ export default function SendOTP() {
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.detail || "OTP verification failed.");
+        let errMsg = data.detail;
+        if (typeof errMsg === "object") errMsg = JSON.stringify(errMsg);
+        setError(errMsg || "OTP verification failed.");
         setLoading(false);
         return;
       }
@@ -104,6 +92,10 @@ export default function SendOTP() {
   const resendOtp = async () => {
     setError("");
     setInfo("");
+    if (!email) {
+      setError("No email found. Please go back and enter your email.");
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch(`${BACKEND_BASE}/api/user/send-otp`, {
@@ -113,7 +105,9 @@ export default function SendOTP() {
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.detail || "Failed to resend OTP.");
+        let errMsg = data.detail;
+        if (typeof errMsg === "object") errMsg = JSON.stringify(errMsg);
+        setError(errMsg || "Failed to resend OTP.");
         setLoading(false);
         return;
       }
@@ -182,8 +176,16 @@ export default function SendOTP() {
           </TouchableOpacity>
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {info ? <Text style={styles.info}>{info}</Text> : null}
+        {error ? (
+          <Text style={styles.error}>
+            {typeof error === "string" ? error : JSON.stringify(error)}
+          </Text>
+        ) : null}
+        {info ? (
+          <Text style={styles.info}>
+            {typeof info === "string" ? info : JSON.stringify(info)}
+          </Text>
+        ) : null}
 
         <TouchableOpacity
           style={[styles.verifyButton, loading && styles.disabled]}
