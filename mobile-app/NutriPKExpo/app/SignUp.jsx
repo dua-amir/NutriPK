@@ -128,11 +128,11 @@ export default function Signup() {
         </Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <View style={styles.fieldLabel}><Text style={styles.labelText}>Email</Text></View>
+        <View style={styles.fieldLabels}><Text style={styles.labelText}>Email</Text></View>
         <View style={styles.inputBox}>
           <Image source={require("../assets/images/email-logo.png")} style={styles.fieldIcon} />
           <TextInput
-            style={[styles.inputBoxInput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
             placeholder="Email"
             placeholderTextColor="#A0A0A0"
             value={email}
@@ -144,11 +144,11 @@ export default function Signup() {
           />
         </View>
 
-        <View style={styles.fieldLabel}><Text style={styles.labelText}>Password</Text></View>
+        <View style={styles.fieldLabels}><Text style={styles.labelText}>Password</Text></View>
         <View style={styles.inputBox}>
           <Image source={require("../assets/images/password-logo.png")} style={styles.fieldIcon} />
           <TextInput
-            style={[styles.inputBoxInput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
             placeholder="Password"
             placeholderTextColor="#A0A0A0"
             value={password}
@@ -162,11 +162,11 @@ export default function Signup() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.fieldLabel}><Text style={styles.labelText}>Confirm Password</Text></View>
+        <View style={styles.fieldLabels}><Text style={styles.labelText}>Confirm Password</Text></View>
         <View style={styles.inputBox}>
           <Image source={require("../assets/images/password-logo.png")} style={styles.fieldIcon} />
           <TextInput
-            style={[styles.inputBoxInput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
             placeholder="Confirm Password"
             placeholderTextColor="#A0A0A0"
             value={confirmPassword}
@@ -264,9 +264,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 14,
   },
-  fieldLabel: {
-    width: '100%',
-    marginBottom: 6,
+  fieldLabels: {
+    width: '100%', marginBottom: 6,
   },
   labelText: {
     color: '#0e4f11ff',
@@ -291,7 +290,7 @@ const styles = StyleSheet.create({
     height: 20,
     marginRight: 10,
   },
-  inputBoxInput: {
+  inputBoxinput: {
     flex: 1,
     fontSize: 15,
     color: '#222',
@@ -318,99 +317,64 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   forgotRight: {
-    alignSelf: 'flex-end',
-    marginTop: -6,
-    marginBottom: 6,
+    alignSelf: 'flex-end',  marginTop: -6, marginBottom: 6,
   },
   centerSignupPrompt: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 8,
+    width: '100%', alignItems: 'center', marginBottom: 8,
   },
   errorText: {
-    color: 'red',
-    marginTop: 8,
-    marginBottom: 6,
-    fontSize: 14,
+    color: 'red', marginTop: 8, marginBottom: 6, fontSize: 14,
   },
   centerPromptText: {
-    color: '#55616A',
-    fontSize: 14,
+    color: '#55616A', fontSize: 14,
   },
   signinLinkLarge: {
-    color: '#0e4f11ff',
-    fontWeight: '700',
+    color: '#0e4f11ff', fontWeight: '700',
   },
   alreadyAccount: {
-    color: '#7B8794',
-    fontSize: 13,
+    color: '#7B8794',fontSize: 13,
   },
   signinLink: {
-    color: '#0e4f11ff',
-    fontWeight: '600',
+    color: '#0e4f11ff',  fontWeight: '600',
   },
   orText: {
-    color: '#7B8794',
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 8,
+    color: '#7B8794',  fontSize: 13, textAlign: 'center', marginTop: 10,marginBottom: 8,
   },
   socialRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '70%',
-    alignSelf: 'center',
-    marginTop: 6,
+    flexDirection: 'row',justifyContent: 'space-between', width: '70%',
+    alignSelf: 'center', marginTop: 6,
   },
   socialCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ECECEC',
+    width: 44,height: 44,
+    borderRadius: 22,backgroundColor: '#fff',
+    alignItems: 'center',justifyContent: 'center',
+    borderWidth: 1, borderColor: '#ECECEC',
   },
   socialIcon: {
-    width: 22,
-    height: 22,
+    width: 22, height: 22,
   },
   signupButton: {
-    width: '92%',
-    height: 48,
-    backgroundColor: '#0e4f11ff',
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+    width: '92%', height: 48,
+    backgroundColor: '#0e4f11ff', borderRadius: 24, alignItems: 'center',
+    justifyContent: 'center', marginBottom: 12,
   },
   signupButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#fff', fontSize: 16,
     fontWeight: '700',
   },
   cardTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#0e4f11ff",
-    marginBottom: 18,
-    alignSelf: "flex-start",
+    fontSize: 22, fontWeight: "bold",
+    color: "#0e4f11ff", marginBottom: 18, alignSelf: "flex-start",
     letterSpacing: 0.5,
   },
   inputContainer: {
-    width: "100%",
-    alignItems: "center",
+    width: "100%",alignItems: "center",
     marginBottom: 0,
   },
   input: {
     width: "100%",
-    height: 44,
-    backgroundColor: "#E0E0D5",
-    borderRadius: 8,
-    borderWidth: 0,
-    paddingHorizontal: 16,
+    height: 44, backgroundColor: "#E0E0D5",
+    borderRadius: 8, borderWidth: 0, paddingHorizontal: 16,
     fontSize: 16,
     marginBottom: 12,
     color: "#0e4f11ff",
