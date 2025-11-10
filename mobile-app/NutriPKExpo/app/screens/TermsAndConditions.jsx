@@ -1,10 +1,7 @@
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
+  View,Text,
+  StyleSheet,TouchableOpacity,ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -26,20 +23,20 @@ export default function TermsAndConditions() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.paragraph}>
+        <Text style={styles.paragraphs}>
           Welcome to NutriPK! By using our app, you agree to maintain accurate
-          information about your health and activity. NutriPK provides guidance
-          and tracking tools to help you stay healthy, but it should not replace
-          professional medical advice.
+          information about your health and activity. NutriPK offers guidance and 
+          tracking features to support your health journey, 
+          but it is not a substitute for professional medical advice.
         </Text>
 
-        <Text style={styles.paragraph}>
-          We respect your privacy, your personal data and progress logs remain
-          secure and are used only to improve your wellness experience within
-          the app.
+        <Text style={styles.paragraphs}>
+          We value your privacy your personal information and progress records
+          stay protected and are only used to enhance your overall wellness
+          experience in the app.
         </Text>
 
-        <Text style={styles.paragraph}>
+        <Text style={styles.paragraphs}>
           By continuing to use NutriPK, you accept these terms and commit to
           using the app responsibly to achieve your fitness goals.
         </Text>
@@ -57,10 +54,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 16,
-    paddingHorizontal: 14,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
+    paddingTop: 18,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 2,
     borderBottomColor: "#eee",
     backgroundColor: "#fff",
   },
@@ -80,7 +77,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 18,
   },
-  paragraph: {
+  paragraphs: {
     fontSize: 16,
     lineHeight: 24,
     color: "#333",
