@@ -1,13 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  TextInput,
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput,
 } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
@@ -224,7 +217,7 @@ export default function Profile() {
       {/* Green header card (top area similar to screenshot) */}
       <View style={styles.headerCard}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Account</Text>
+          <Text style={styles.headerTitle}>My Account</Text>
           <Text style={styles.headerSubtitle}>Manage your profile</Text>
         </View>
         <TouchableOpacity onPress={editing ? pickImage : undefined} style={styles.headerAvatarWrap}>
@@ -258,7 +251,7 @@ export default function Profile() {
                 style={[styles.input, !editing && styles.inputReadOnly]}
                 value={username}
                 onChangeText={setUsername}
-                placeholder="Your name"
+                placeholder="Enter your display name"
                 editable={editing}
                 selectTextOnFocus={editing}
               />
@@ -272,23 +265,23 @@ export default function Profile() {
                 keyboardType="numeric"
                 editable={editing}
               />
-
+{/* Input field for user's height in cm. Editable only in edit mode.*/}
               <Text style={styles.label}>Height (cm)</Text>
               <TextInput
                 style={[styles.input, !editing && styles.inputReadOnly]}
                 value={height}
                 onChangeText={setHeight}
-                placeholder="Height in cm"
+                placeholder="Height in cm "
                 keyboardType="numeric"
                 editable={editing}
               />
-
+           {/* Input field for user's weight in kg. Editable only in edit mode.*/}
               <Text style={styles.label}>Weight (kg)</Text>
               <TextInput
                 style={[styles.input, !editing && styles.inputReadOnly]}
                 value={weight}
                 onChangeText={setWeight}
-                placeholder="Weight in kg"
+                placeholder="Weight in kg "
                 keyboardType="numeric"
                 editable={editing}
               />
@@ -345,27 +338,16 @@ export default function Profile() {
 }
 const styles = StyleSheet.create({
   scrollContainer: {
-    paddingTop: 0,
-    backgroundColor: '#FFF3EC',
-    paddingBottom: 24,
-    alignItems: 'center',
+    paddingTop: 0, backgroundColor: '#FFF3EC', paddingBottom: 24, alignItems: 'center',
   },
   container: {
-    width: '100%',
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    width: '100%', paddingHorizontal: 24, paddingTop: 16,
   },
   headerCard: {
-    width: '100%',
-    backgroundColor: '#2E7D32',
-    borderRadius: 4,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    marginTop: 30,
-    marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    width: '100%',backgroundColor: '#2E7D32', borderRadius: 4,
+    paddingVertical: 18, paddingHorizontal: 20,
+    marginTop: 30,marginBottom: 14, flexDirection: 'row',
+    alignItems: 'center',justifyContent: 'space-between',
   },
   headerLeft: {
     flexDirection: 'column',
