@@ -12,7 +12,6 @@ export const CircularProgress = ({ percentage = 0, value, label, unit = '', colo
   useEffect(() => {
     if (typeof __DEV__ !== 'undefined' && __DEV__) {
       // debug info for device logs to help diagnose rendering issues on Expo Go
-      // eslint-disable-next-line no-console
       console.log('[DEV] CircularProgress debug', { circumference, progressValue, strokeDashoffset, radius, strokeWidth });
     }
   }, [circumference, progressValue, strokeDashoffset, radius, strokeWidth]);
@@ -20,7 +19,7 @@ export const CircularProgress = ({ percentage = 0, value, label, unit = '', colo
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <View style={[styles.backgroundCircle, { backgroundColor: color }]}>
-        <View style={styles.content}>
+        <View style={styles.contents}>
           <Text style={styles.value}>{value}{unit}</Text>
           <Text style={styles.label}>{label}</Text>
         </View>
@@ -62,25 +61,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    borderRadius: 999,
+    borderRadius: 998,
     backgroundColor: '#4CAF50',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  content: {
+  contents: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   value: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
   },
   label: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#fff',
-    marginTop: 2,
+    marginTop: 3,
     textAlign: 'center',
   },
 });
