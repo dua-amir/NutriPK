@@ -11,14 +11,11 @@ def send_reset_email(to_email, reset_link):
 
     subject = 'NutriPK Password Reset'
     body = f"""
-    Hello,
-
-    You requested a password reset for your NutriPK account.
-    Click the link below to reset your password:
-
+    We received a request to reset the password for your NutriPK account. 
+    Please click the link below to securely reset your password:
     {reset_link}
 
-    If you did not request this, please ignore this email.
+   If you didn’t ask for this, you can ignore this email.
     """
 
     msg = MIMEMultipart()
@@ -48,9 +45,8 @@ def send_otp_email(to_email, otp_code):
 
     subject = 'Your NutriPK One-Time Password (OTP)'
     body = f"""
-    Hello,
 
-    Use the following One-Time Password (OTP) to verify your account or reset your password:
+    Use this One-Time Password (OTP) to verify your account or reset your password:
 
     {otp_code}
 
