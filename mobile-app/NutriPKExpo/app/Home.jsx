@@ -372,6 +372,7 @@ export default function Home({ navigation }) {
   return (
     <View style={styles.outer}>
       <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false}>
+        {/* Animated header: applies shadow, responsive padding. */}
         <Animated.View
           style={[
             styles.header,
@@ -380,6 +381,7 @@ export default function Home({ navigation }) {
             { opacity: heroAnim, transform: [{ translateY: heroAnim.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] },
           ]}
         >
+          
           {/* left: profile */}
           <View style={styles.avatarWrapLeft}>
             <View style={styles.avatarCircleLeft}>
@@ -405,9 +407,9 @@ export default function Home({ navigation }) {
                 <Entypo name="chevron-right" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.heroSubSmall}>{greeting} - Stay consistent!</Text>
+            <Text style={styles.heroSubSmall}>{greeting} Stay consistent!</Text>
           </View>
-{/* right: bell */}
+{/* notification icon */}
           <TouchableOpacity style={styles.calendarButton} activeOpacity={0.85} onPress={onBell}>
             <FontAwesome name="bell" size={18} color="#0e4f11ff" />
           </TouchableOpacity>
@@ -644,18 +646,18 @@ function getProfileImageSource(username) {
 
 const styles = StyleSheet.create({
   outer: { flex: 1, backgroundColor: "#FFF3EC" },
-  inner: { paddingVertical: 15, paddingHorizontal: 1, alignItems: "stretch", width: '100%' },
+  inner: { paddingVertical: 16, paddingHorizontal: 2, alignItems: "stretch", width: '100%' },
   shadow: { shadowColor: "#0B1220", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
-  header: { width: "100%", marginTop: 15, paddingHorizontal:2, borderRadius: 4, marginBottom: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#2E7D32" },
-  greetingLarge: { fontSize: 13, color: '#8A96A2', marginBottom: 4 },
+  header: { width: "100%", marginTop: 16, paddingHorizontal:3, borderRadius: 5, marginBottom: 24, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#2E7D32" },
+  greetingLarge: { fontSize: 14, color: '#8A96A2', marginBottom: 5},
   greetingName: { fontSize: 18, fontWeight: '800', color: '#07112A', marginBottom: 2, textAlign: 'center' },
   heroSub: { color: "#fff", fontSize: 13 },
-  heroSubSmall: { color: '#fff', fontSize: 12, marginTop: 4 },
-  dateSmall: { fontSize: 12, color: '#fff', fontWeight: '700' },
-  greetingNameCenter: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  heroSubSmall: { color: '#fff', fontSize: 14, marginTop: 4 },
+  dateSmall: { fontSize: 14, color: '#fff', fontWeight: '700', marginBottom:2, textalign: 'center'},
+  greetingNameCenter: { fontSize: 14, fontWeight: '800', color: '#fff' },
   avatarWrapLeft: { marginRight: 12, alignItems: 'flex-start', marginLeft: 8 },
-  avatarCircleLeft: { width: 56, height: 56, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', borderWidth: 0 },
-  avatarImg: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#F1F5F9' },
+  avatarCircleLeft: { width: 55, height: 55, borderRadius: 14, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', borderWidth: 0 },
+  avatarImg: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#F1F5F9' },
   avatarInitialLeft: { fontSize: 14, fontWeight: '800', color: '#374151' },
   calendarButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   avatarInitial: { fontSize: 16, fontWeight: '800', color: '#065F46' },
@@ -663,7 +665,7 @@ const styles = StyleSheet.create({
   card: { flex: 1, minWidth: 260, backgroundColor: "#FFFFFF", borderRadius: 14, padding: 20, marginBottom: 14, borderWidth: 0 },
   cardHeaderTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   cardTitle: { fontSize: 16, fontWeight: "700", color: "#0e4f11ff" },
-  cardSmall: { fontSize: 13, color: "#6B7280" },
+  cardSmall: { fontSize: 13, color: "#6B7280",marginBottom:2, textalign: 'center' },
   progressBarTrack: { width: "100%", height: 10, backgroundColor: "#F1FAF6", borderRadius: 10, overflow: "hidden" },
   progressBarFill: { height: "100%", backgroundColor: "#10B981", borderRadius: 10 },
   topCardWrap: { width: '100%', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, marginBottom: 12 },
@@ -674,7 +676,7 @@ const styles = StyleSheet.create({
   cardSmallWhite: { color: '#E6FFF2' },
   cardControlRow: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: 'space-between' },
   addButton: { width: 40, height: 40, borderRadius: 10, backgroundColor: "#F8FAFC", alignItems: "center", justifyContent: "center", marginRight: 8, borderWidth: 1, borderColor: '#EEF2F6' },
-  addButtonText: { fontSize: 20, color: "#374151", fontWeight: "700" },
+  addButtonText: { fontSize: 20, color: "#374151", fontWeight: "700" ,marginBottom:2, textalign: 'center'},
   smallButton: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#EEF2F6' },
   smallButtonText: { fontSize: 18, color: '#374151', fontWeight: '700' },
   encourage: { color: "#6B7280", fontSize: 12 },
@@ -692,7 +694,7 @@ const styles = StyleSheet.create({
   caloriesCardWrap: { width: '100%', paddingHorizontal: 12, marginBottom: 12 },
   caloriesCard: { width: '100%', backgroundColor: '#F0FDF4', borderRadius: 14, padding: 18, alignItems: 'center' },
   caloriesInnerPanel: { width: 180, height: 120, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', shadowColor: '#0B1220', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
-  caloriesLabel: { color: '#065F46', fontWeight: '700', fontSize: 14 },
+  caloriesLabel: { color: '#065F46', fontWeight: '700', fontSize: 14, marginbottom: 4, textalign },
   caloriesBig: { fontSize: 42, fontWeight: '900', color: '#07112A' },
   caloriesSmall: { color: '#94A3B8', fontSize: 12 },
   statRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 12, paddingHorizontal: 12 },
