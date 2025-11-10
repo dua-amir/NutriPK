@@ -1,18 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useFocusEffect } from 'expo-router';
 import { formatTimePK, formatHeaderDatePK, addDaysISO, toISODate, parseToDateObj, toPKDate } from './_utils/dateUtils';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  useWindowDimensions,
-  Platform,
-  ScrollView,
-  Image,
-  Easing,
-  Alert,
+import { View,Text,StyleSheet,
+  TouchableOpacity,Animated,useWindowDimensions,
+  Platform,ScrollView,Image,
+  Easing,Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BACKEND_BASE } from './config';
@@ -113,8 +105,7 @@ export default function Home({ navigation }) {
   }, []);
 
   // Recent meals are loaded per-selectedDate in the nutrients loader below.
-
-  // Backend base used to prefix relative static paths returned by backend
+// Backend base used to prefix relative static paths returned by backend
   // imported from central config so it can be changed per laptop
 
   function resolveMealImage(img) {
@@ -156,12 +147,12 @@ export default function Home({ navigation }) {
         if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DEV] water POST failed', e);
       }
     };
-    // Only persist when waterCount changes (guard for first mount when it's zero)
+// Only persist when waterCount changes (guard for first mount when it's zero)
     persist();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waterCount, userEmail]);
-
   // load water for selected date
+
   useEffect(() => {
     const loadWater = async () => {
       if (!userEmail) return;
@@ -175,6 +166,7 @@ export default function Home({ navigation }) {
         if (typeof __DEV__ !== 'undefined' && __DEV__) console.log('[DEV] water GET', data);
         // Backend may store water entries with full timestamps or with plain ISO dates.
         // Normalize each entry to a PK local ISO date and compare to selectedDate so today's entry is found reliably.
+       
         const waterEntries = (data.water || []);
         let doc = waterEntries.find(w => w.date === selectedDate);
         if (!doc) {
@@ -416,9 +408,8 @@ export default function Home({ navigation }) {
             </View>
             <Text style={styles.heroSubSmall}>{greeting} - Stay consistent!</Text>
           </View>
-
-          {/* right: bell */}
-          <TouchableOpacity style={styles.calendarBtn} activeOpacity={0.85} onPress={onBell}>
+{/* right: bell */}
+          <TouchableOpacity style={styles.calendarButton} activeOpacity={0.85} onPress={onBell}>
             <FontAwesome name="bell" size={18} color="#0e4f11ff" />
           </TouchableOpacity>
         </Animated.View>
@@ -438,9 +429,7 @@ export default function Home({ navigation }) {
             </View>
           </Animated.View>
         </View>
-
-
-        {/* Macronutrients card */}
+{/* Macronutrients card */}
         <View style={styles.statRow}>
           <View style={[styles.statCard, styles.shadow]}>
             <Text style={styles.statLabel}>Protein</Text>
@@ -464,7 +453,7 @@ export default function Home({ navigation }) {
             <Text style={styles.smallMuted}>{Math.round((fatsConsumed / Math.max(1, targetFats)) * 100)}% of {targetFats}g</Text>
           </View>
         </View>
-
+        {/* Water Intake Section */}
         <View style={[styles.waterVisualWrap, styles.shadow]}>
           <View style={styles.waterVisualCard}>
             <View style={styles.waterVisualTopRow}>
@@ -516,7 +505,7 @@ export default function Home({ navigation }) {
                       try {
                         router.push({ pathname: '/MealDetails', params: { meal: JSON.stringify(m) } });
                       } catch (e) {
-                        console.log('Open meal fallback', e, m);
+                        console.log('Open meal fallback....', e, m);
                       }
                     }}
                     onPressIn={() => Animated.timing(translateX, { toValue: -8, duration: 120, useNativeDriver: true }).start()}
@@ -538,7 +527,7 @@ export default function Home({ navigation }) {
                     </View>
                   </TouchableOpacity>
                   <View style={styles.mealRight}>
-                    <Text style={styles.mealTime}>{formatTime(m.timestamp || m.time)}</Text>
+                    <Text style={styles.mealTimes}>{formatTime(m.timestamp || m.time)}</Text>
                     {/* Chevron removed per design */}
                   </View>
                 </Animated.View>
@@ -571,7 +560,8 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Use a solid stroke color for reliable rendering on Android/Expo */}
+       {/* Use a solid stroke color for reliable rendering on Android/Expo */}
+
         <G rotation={-90} originX={center} originY={center}>
           <SvgCircle
             cx={center}
@@ -621,6 +611,7 @@ function CircularProgress({ size = 120, percentage = 0, animatedValue, strokeWid
 }
 
 // small animated button that scales on press for micro-interaction
+
 function AnimatedButton({ children, onPress, style }) {
   const scale = useRef(new Animated.Value(1)).current;
   const onPressIn = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start();
@@ -636,10 +627,10 @@ function AnimatedButton({ children, onPress, style }) {
 
 function randomQuote() {
   const quotes = [
-    "Consistency isn’t about perfection; it’s about showing up every day and trusting the process",
-    "Small daily habits shape big, lasting transformations; one mindful choice at a time",
-    "Fuel your body with intention, and let every meal be a step toward your stronger self",
+    "Consistency isn’t about perfection; it’s about showing up every day and trusting the process", 
     "Every bit of progress counts, keep pushing forward, your goals are closer than you think",
+    "Fuel your body with intention, and let every meal be a step toward your stronger self",
+    "Small daily habits shape big, lasting transformations; one mindful choice at a time",
   ];
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
@@ -668,7 +659,7 @@ const styles = StyleSheet.create({
   avatarCircleLeft: { width: 56, height: 56, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', borderWidth: 0 },
   avatarImg: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#F1F5F9' },
   avatarInitialLeft: { fontSize: 14, fontWeight: '800', color: '#374151' },
-  calendarBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  calendarButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   avatarInitial: { fontSize: 16, fontWeight: '800', color: '#065F46' },
   cardsRow: { width: "100%", maxWidth: 980, flexDirection: "row", justifyContent: "space-between", gap: 16, marginBottom: 18 },
   card: { flex: 1, minWidth: 260, backgroundColor: "#FFFFFF", borderRadius: 14, padding: 20, marginBottom: 14, borderWidth: 0 },
@@ -729,7 +720,7 @@ const styles = StyleSheet.create({
   mealImage: { width: 44, height: 44, borderRadius: 8, marginRight: 12, backgroundColor: '#EFEFF0' },
   mealTitle: { fontSize: 14, fontWeight: '700', color: '#2E7D32' },
   mealSubtitle: { fontSize: 15, color: '#6B7280', marginTop: 4 },
-  mealTime: { fontSize: 12, color: '#94A3B8' },
+  mealTimes: { fontSize: 12, color: '#94A3B8' },
   footer: { paddingVertical: 16, alignItems: "center", width: "100%" },
   footerText: { color: "#A1A9B1", fontSize: 12 },
   overlapRow: { marginTop: -20, marginBottom: 6, paddingHorizontal: 2 },
