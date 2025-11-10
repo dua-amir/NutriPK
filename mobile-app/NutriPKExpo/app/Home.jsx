@@ -13,7 +13,6 @@ import Svg, { Circle as SvgCircle, Defs, LinearGradient, Stop, G } from 'react-n
 const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
 import { useRouter } from 'expo-router';
 
-
 export default function Home({ navigation }) {
   const router = useRouter();
   const [username, setUsername] = useState("");
