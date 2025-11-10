@@ -57,6 +57,7 @@ Note: The above list focuses on the files edited/inspected during this session. 
 ---
 
 ## How to run locally
+
 Prerequisites
 
 - Node.js + npm (for running the Expo app and installing packages).

@@ -152,6 +152,7 @@ export default function SendOTP() {
             maxLength={6}
             autoFocus
           />
+          
           <TouchableOpacity
             activeOpacity={1}
             style={styles.digitsRow}

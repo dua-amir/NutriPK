@@ -322,7 +322,7 @@ export default function Home() {
 
       {error && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>❌ {error}</Text>
+          <Text style={styles.errorText}>Error {error}</Text>
         </View>
       )}
 
@@ -352,6 +352,7 @@ export default function Home() {
             onPress={saveMeal}
             disabled={loading}
           >
+            {/* Show loading state when saving */}
             <Text style={styles.predictButtonText}> Save Meal</Text>
           </TouchableOpacity>
         </View>
@@ -395,9 +396,9 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "bold",
-    marginBottom: 24,
+    marginBottom: 26,//from 20,
     marginTop: 30,
     color: "#0e4f11ff",
     textAlign: "center",
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 24,
-    gap: 12,
+    gap: 14,
   },
   button: {
     flex: 1,
@@ -424,16 +425,17 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     backgroundColor: "#2E7D32",
+    fontSize: 20,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
   },
   previewContainer: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 28,
   },
   preview: {
     width: 280,
@@ -479,7 +481,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: "#D32F2F",
-    fontSize: 16,
+    fontSize: 18, //from 16
     textAlign: "center",
   },
   resultsContainer: {
