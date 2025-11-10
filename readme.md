@@ -1,4 +1,3 @@
-
 # NutriPK — Project README
 
 This repository contains NutriPK: a food-tracking/training project with a React Native Expo mobile app and a FastAPI + MongoDB backend. This README documents the recent changes made across the codebase (frontend and backend), how to run the project locally, how to verify timezone correctness for Pakistan (Asia/Karachi), files edited during the session, and next steps.
@@ -10,27 +9,31 @@ This repository contains NutriPK: a food-tracking/training project with a React 
 During the current development session several focused changes were implemented to improve the Home screen UX, timezone correctness, Weekly Summary visuals, camera scrolling, and data persistence for water intake. Key highlights:
 
 - Home screen
-	- Top attached header with profile, PK-local date display, and bell icon UI (visual adjustments done in `app/Home.jsx`).
-	- Previous/Next date arrows implemented so users can browse days other than today.
-	- Calories donut now shows the consumed value in the center and animates when values change.
-	- Macronutrient stat cards show consumed grams and percent-of-target (uses public profile targets fetched from the backend).
-	- Water input uses 8 tappable glass icons; saving water persists to the backend using FormData (POST `/api/user/water`) and triggers a UI update in Weekly Summary via an in-app event emitter.
-	- Recent Meals list now filters meals by Pakistan local date (Asia/Karachi) so meals saved after midnight PK are grouped correctly into 'today'.
+
+  - Top attached header with profile, PK-local date display, and bell icon UI (visual adjustments done in `app/Home.jsx`).
+  - Previous/Next date arrows implemented so users can browse days other than today.
+  - Calories donut now shows the consumed value in the center and animates when values change.
+  - Macronutrient stat cards show consumed grams and percent-of-target (uses public profile targets fetched from the backend).
+  - Water input uses 8 tappable glass icons; saving water persists to the backend using FormData (POST `/api/user/water`) and triggers a UI update in Weekly Summary via an in-app event emitter.
+  - Recent Meals list now filters meals by Pakistan local date (Asia/Karachi) so meals saved after midnight PK are grouped correctly into 'today'.
 
 - Weekly Summary
-	- Reordered weekly summary to show Monday → Sunday consistently.
-	- Water visualization changed from line strokes to rounded bar rectangles (with numeric labels above each bar) for clarity.
-	- Nutrients trend chart improved with gridlines, point markers, and dual scales (calories vs macros) to avoid flattening macro lines.
-	- Card background updated to white and a heading `Nutrients Trend` added for visual consistency.
+
+  - Reordered weekly summary to show Monday → Sunday consistently.
+  - Water visualization changed from line strokes to rounded bar rectangles (with numeric labels above each bar) for clarity.
+  - Nutrients trend chart improved with gridlines, point markers, and dual scales (calories vs macros) to avoid flattening macro lines.
+  - Card background updated to white and a heading `Nutrients Trend` added for visual consistency.
 
 - Date/time handling
-	- Robust date parsing utilities were added/updated in `app/utils/dateUtils.js`. These handle numeric epoch values, timezone-aware ISO strings, and timezone-less ISO strings (treated as UTC). A `toPKDate` utility is exported and used across the app to compute the Pakistan local wall-clock date for grouping meals and water by day.
+
+  - Robust date parsing utilities were added/updated in `app/utils/dateUtils.js`. These handle numeric epoch values, timezone-aware ISO strings, and timezone-less ISO strings (treated as UTC). A `toPKDate` utility is exported and used across the app to compute the Pakistan local wall-clock date for grouping meals and water by day.
 
 - Camera
-	- Fixed the Camera screen scroll behavior on small devices by adjusting `ScrollView` content styles.
+
+  - Fixed the Camera screen scroll behavior on small devices by adjusting `ScrollView` content styles.
 
 - Small infrastructure additions
-	- Added a tiny in-app event emitter (`app/utils/events.js`) used to notify Weekly Summary to refresh after water updates.
+  - Added a tiny in-app event emitter (`app/utils/events.js`) used to notify Weekly Summary to refresh after water updates.
 
 ---
 
@@ -181,19 +184,11 @@ Important: Always convert stored timestamps to PK local date with `toPKDate` bef
 
 - Exported `toPKDate` and improved date parsing in `app/utils/dateUtils.js`.
 - Updated `app/Home.jsx` to:
-	- use PK-based date filtering for Recent Meals,
-	- show consumed calories inside the donut and animate changes,
-	- post water using FormData and emit an update event.
+  - use PK-based date filtering for Recent Meals,
+  - show consumed calories inside the donut and animate changes,
+  - post water using FormData and emit an update event.
 - Updated `app/WeeklySummary.jsx` to reorder Mon→Sun and show water as rounded bars with numeric labels and a dual-scale nutrients chart.
 - Added `app/utils/events.js` (tiny subscribe/emit module).
 - Fixed `app/tabs/Camera.jsx` ScrollView content style for small screens.
 
----
-
-If you want, I can also:
-
-- Remove dev logs and produce a clean production-ready branch.
-- Add unit tests for the date parsing helpers.
-- Implement tooltips/legends for the nutrients chart.
-
-Tell me which follow-up you'd like and I will implement it next (I can do these changes now).
+- Added `app/OnboardingSetupProfile.jsx` to initially mnage user;s profile.

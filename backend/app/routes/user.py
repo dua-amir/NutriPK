@@ -115,7 +115,7 @@ async def get_meals_for_date(email: str, date: str = None):
     return {"meals": results}
 
 
-@router.post("/signup", response_model=UserProfile)
+@router.post("/signup")
 async def signup(user: UserCreate):
     existing = await get_user_by_email(user.email)
     if existing:
@@ -133,7 +133,15 @@ async def signup(user: UserCreate):
     }
     await user_collection.insert_one(user_dict)
     user_dict.pop("password")
-    return UserProfile(**user_dict)
+    # Create access token for new user
+    access_token = create_access_token(data={"sub": user.email})
+    response = {
+        "profile": UserProfile(**user_dict),
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+    print("Signup response:", response)
+    return response
 
 
 # Token endpoint for OAuth2

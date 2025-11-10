@@ -24,6 +24,7 @@ export default function RootLayout() {
         <Stack.Screen name="screens/AccountCreate" />
         <Stack.Screen name="Login" />
         <Stack.Screen name="SignUp" />
+        <Stack.Screen name="OnboardingSetupProfile" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="Profile" />
         <Stack.Screen name="Home" />

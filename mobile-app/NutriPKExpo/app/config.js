@@ -3,7 +3,7 @@
 const DEFAULT_API =
   typeof process !== "undefined" && process.env?.API_URL
     ? process.env.API_URL
-    : "http://192.168.1.4:8000";
+    : "http://192.168.1.6:8000";
 
 export const BACKEND_BASE = DEFAULT_API;
 

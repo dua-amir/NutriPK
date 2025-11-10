@@ -89,8 +89,16 @@ export default function Signup() {
         setLoading(false);
         return;
       }
+      const data = await response.json();
+      // If backend returns { profile, access_token, token_type }
+      const token =
+        data.access_token || (data.profile && data.profile.access_token) || "";
       setLoading(false);
-      router.replace("/Login");
+      router.push(
+        `/OnboardingSetupProfile?email=${encodeURIComponent(
+          email
+        )}&token=${encodeURIComponent(token)}`
+      );
     } catch (err) {
       setError("Network error. Please try again.");
       setLoading(false);
