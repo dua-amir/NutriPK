@@ -90,8 +90,7 @@ export default function Login() {
       <View style={styles.cardTop}>
         <Text style={styles.title}>Welcome, Back!</Text>
         <Text style={styles.cardSubtitle}>
-          Sign in to track your progress and stay committed to your health
-          goals.
+          Sign in to monitor your progress and stay dedicated to your health goals.
         </Text>
         {error ? (
           <Text style={[styles.errorText, { color: "#d32f2f" }]}>{error}</Text>
@@ -202,13 +201,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#FFF3EC",
     paddingHorizontal: 14,
-    paddingTop: 8,
+    paddingTop: 10,
     paddingBottom: 14,
   },
   backButton: {
     position: "absolute",
     marginTop: Platform.OS === "android" ? 30 : 50,
-    left: 14,
+    left: 18,
     top: 18,
     zIndex: 10,
   },
@@ -226,7 +225,7 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0D5",
   },
   title: {
-    fontSize: 27,
+    fontSize: 30,
     fontWeight: "bold",
     color: "#0e4f11ff",
     letterSpacing: 1,
@@ -252,7 +251,7 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     color: "#7B8794",
-    fontSize: 16,
+    fontSize: 17,
     marginBottom: 14,
   },
   fieldLabel: {
@@ -284,7 +283,7 @@ const styles = StyleSheet.create({
   },
   inputBoxInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: "#222",
   },
   agreeRow: {
@@ -293,21 +292,7 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 6,
   },
-  agreeCheckbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: "#0e4f11ff",
-    borderRadius: 4,
-    marginRight: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-  },
-  agreeText: {
-    color: "#55616A",
-    fontSize: 14,
-  },
+  
   forgotRight: {
     alignSelf: "flex-end",
     marginTop: -6,
@@ -377,7 +362,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   cardTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#0e4f11ff",
     marginBottom: 18,
@@ -394,10 +379,10 @@ const styles = StyleSheet.create({
     height: 44,
     backgroundColor: "#E0E0D5",
     borderRadius: 8,
-    borderWidth: 0,
+    borderWidth: 1,
     paddingHorizontal: 16,
     fontSize: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     color: "#0e4f11ff",
   },
   passwordRow: {
@@ -422,20 +407,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: "#0e4f11ff",
-    marginRight: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E0E0D5",
-  },
-  checkboxActive: {
-    backgroundColor: "#fff",
-  },
+ 
   rememberMeText: {
     color: "#4E944F",
     fontSize: 14,
