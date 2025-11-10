@@ -350,17 +350,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',justifyContent: 'space-between',
   },
   headerLeft: {
-    flexDirection: 'column',
+    flexDirection: 'column', 
+    justifyContent: 'center',
+
   },
   headerTitle: {
     color: '#fff',
     fontSize: 20,
     fontWeight: '700',
+    marginBottom: 2,
+    paddingRight: 20,
   },
   headerSubtitle: {
     color: '#DFF5E0',
     fontSize: 12,
     marginTop: 2,
+    paddingRight: 18,
+    marginBottom: 4,
   },
   card: {
     width: "100%",
@@ -386,10 +392,16 @@ const styles = StyleSheet.create({
   headerAvatarWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginleft: 14,
+    marginRight: 0,
+    padding: 2,
   },
   rowInfo: {
     width: '100%',
     marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+
   },
   avatar: {
     width: 90,
@@ -403,6 +415,11 @@ const styles = StyleSheet.create({
   avatarWrap: {
     alignItems: 'center',
     marginRight: 12,
+    marginBottom: 20,
+    padding: 6,
+    borderRadius: 50,
+    borderwidhth: 2,
+    borderColor: "#2E7D32",
   },
   row: {
     flexDirection: 'row',
@@ -412,6 +429,9 @@ const styles = StyleSheet.create({
   },
   infoCol: {
     flex: 1,
+    flexDirection: 'column',
+    paddingRight: 14,
+
   },
   name: {
     fontSize: 24,
@@ -423,10 +443,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#4E944F",
     marginBottom: 8,
+    marginRight: 12,
   },
   form: {
     width: '100%',
     marginTop: 6,
+    marginBottom: 10,
   },
   label: {
     color: '#4E944F',
@@ -438,20 +460,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#4E944F",
     marginBottom: 4,
+    marginRight: 14,
   },
   infoValue: {
     color: "#2E7D32",
     fontWeight: "bold",
+
   },
   bmiText: {
     color: '#2E7D32',
     fontWeight: '700',
     marginBottom: 6,
+    marginTop: 4,
+    fontSize: 14,
   },
   joined: {
     fontSize: 14,
     color: "#A0A0A0",
     marginBottom: 18,
+    marginRight: 16,
   },
   input: {
     width: "100%",
@@ -467,6 +494,7 @@ const styles = StyleSheet.create({
   inputReadOnly: {
     backgroundColor: '#F5F5F5',
     color: '#A0A0A0',
+    marginBottom: 10,
   },
   editButton: {
     backgroundColor: "#4E944F",
@@ -479,6 +507,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+    marginHorizontal: 8,
   },
   saveButton: {
     backgroundColor: "#2E7D32",
@@ -491,6 +520,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+    marginHorizontal: 10,
   },
   editImageText: {
     color: "#4E944F",
