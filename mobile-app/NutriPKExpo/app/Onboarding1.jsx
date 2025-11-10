@@ -1,11 +1,8 @@
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Dimensions,
+  View, Text,
+  StyleSheet, Image,
+  TouchableOpacity, Dimensions,
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -16,9 +13,9 @@ export default function Onboarding1() {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>
+    <View style={styles.container1}>
+      <View style={styles.contents}>
+        <Text style={styles.maintitle}>
           Track Your{"\n"}
           Calories &{"\n"}
           Nutrition
@@ -58,24 +55,24 @@ export default function Onboarding1() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container1: {
     flex: 1,
     backgroundColor: "#FFF3EC",
   },
-  content: {
+  contents: {
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: "center",
   },
-  title: {
-    fontSize: 48,
-    lineHeight: 54,
+  maintitle: {
+    fontSize: 49,
+    lineHeight: 53,
     fontWeight: "800",
     color: "#0e4f11ff",
   },
   accent: {
-    width: 60,
-    height: 6,
+    width: 62,
+    height: 8,
     backgroundColor: "#0e4f11ff",
     borderRadius: 6,
     marginTop: 12,

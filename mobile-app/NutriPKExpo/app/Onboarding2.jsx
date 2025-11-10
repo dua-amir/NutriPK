@@ -23,16 +23,16 @@ export default function Onboarding2() {
 
         <Text style={styles.title}>Personalized plans{"\n"}that fit you</Text>
         <Text style={styles.subtitle}>
-          Get meal suggestions, track macros, and reach your goals with simple
-          daily actions.
+         Receive meal recommendations, monitor your nutrients,
+          and achieve your targets through easy daily steps.
         </Text>
-
+{/*before login*/}
         <View style={styles.actions}>
           <TouchableOpacity
             onPress={() => router.push("/Onboarding1")}
             style={[styles.button, styles.ghost]}
           >
-            <Text style={[styles.buttonText, styles.ghostText]}>Back</Text>
+            <Text style={[styles.buttonText, styles.Texts]}>Back</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -53,10 +53,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF3EC",
   },
   heroImage: {
-    width: "92%",
-    height: 260,
+    width: "91%",
+    height: 259,
     alignSelf: "center",
-    marginBottom: 18,
+    marginBottom: 17,
   },
   content: {
     flex: 1,
@@ -64,15 +64,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontSize: 36,
-    fontWeight: "800",
+    fontSize: 37,
+    fontWeight: "802",
     color: "#0e4f11ff",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: "#33475B",
-    marginBottom: 28,
+    marginBottom: 30,
   },
   actions: {
     flexDirection: "row",
@@ -81,13 +81,13 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#0e4f11ff",
-    paddingVertical: 12,
-    paddingHorizontal: 28,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
     borderRadius: 8,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600",
   },
   ghost: {
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#0e4f11ff",
   },
-  ghostText: {
+  Texts: {
     color: "#0e4f11ff",
   },
 });
