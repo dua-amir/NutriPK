@@ -311,17 +311,17 @@ const styles = StyleSheet.create({
   },
   info: {
     color: "#333",
-    marginTop: 8,
+    marginTop: 10,
   },
   countdownText: {
     color: "#7B8794",
-    fontSize: 13,
+    fontSize: 15,
     textAlign: "center",
     marginTop: 10,
   },
   verifyButton: {
     marginTop: 24,
-    height: 48,
+    height: 50,
     borderRadius: 24,
     backgroundColor: "#0e4f11ff",
     alignItems: "center",
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   verifyText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
   },
   disabled: {
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   },
   resendText: {
     color: "#0e4f11ff",
-    fontWeight: "600",
+    fontWeight: "605",
   },
   resendDisabled: {
     color: "#BFBFBF",

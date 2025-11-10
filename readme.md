@@ -42,7 +42,7 @@ During the current development session several focused changes were implemented 
 Frontend (mobile-app/NutriPKExpo/app):
 
 - `Home.jsx` — main dashboard: PK date handling, donuts showing center values, macronutrient computations, water FormData POST, event emit on water save, recent meals filtering by PK date, navigation wiring to MealDetails/Camera.
-- `WeeklySummary.jsx` — weekly aggregation visualizations: ordered Mon→Sun summary, water rounded bar glyphs with labels, nutrients chart dual scales and gridlines, white card + heading.
+- `WeeklySummary.jsx` — weekly aggregation visualizations: ordered Mon-Sun summary, water rounded bar glyphs with labels, nutrients chart dual scales and gridlines, white card + heading.
 - `utils/dateUtils.js` — robust date parsing and formatting helpers; exports `toPKDate` used for all PK date comparisons.
 - `utils/events.js` — very small in-process event emitter.
 - `tabs/Camera.jsx` — camera screen scroll behavior fix.
@@ -57,7 +57,6 @@ Note: The above list focuses on the files edited/inspected during this session. 
 ---
 
 ## How to run locally
-
 Prerequisites
 
 - Node.js + npm (for running the Expo app and installing packages).
@@ -138,7 +137,7 @@ Automated sanity check (example server request):
 Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/user/weekly-summary?email=youremail@example.com' -Method GET | ConvertTo-Json -Depth 6
 ```
 
-The returned JSON `summary` contains 7 days (Mon→Sun) and `waterGlasses` per day. Verify that the day counts match expectations for PK local dates.
+The returned JSON `summary` contains 7 days (Mon-Sun) and `waterGlasses` per day. Verify that the day counts match expectations for PK local dates.
 
 ---
 
