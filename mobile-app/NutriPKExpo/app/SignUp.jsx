@@ -128,11 +128,11 @@ export default function Signup() {
         </Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <View style={styles.fieldLabel}><Text style={styles.labelText}>Email</Text></View>
+        <View style={styles.fieldLabels}><Text style={styles.labelText}>Email</Text></View>
         <View style={styles.inputBox}>
           <Image source={require("../assets/images/email-logo.png")} style={styles.fieldIcon} />
           <TextInput
-            style={[styles.inputBoxInput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
             placeholder="Email"
             placeholderTextColor="#A0A0A0"
             value={email}
@@ -144,11 +144,11 @@ export default function Signup() {
           />
         </View>
 
-        <View style={styles.fieldLabel}><Text style={styles.labelText}>Password</Text></View>
+        <View style={styles.fieldLabels}><Text style={styles.labelText}>Password</Text></View>
         <View style={styles.inputBox}>
           <Image source={require("../assets/images/password-logo.png")} style={styles.fieldIcon} />
           <TextInput
-            style={[styles.inputBoxInput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
             placeholder="Password"
             placeholderTextColor="#A0A0A0"
             value={password}
@@ -162,11 +162,11 @@ export default function Signup() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.fieldLabel}><Text style={styles.labelText}>Confirm Password</Text></View>
+        <View style={styles.fieldLabels}><Text style={styles.labelText}>Confirm Password</Text></View>
         <View style={styles.inputBox}>
           <Image source={require("../assets/images/password-logo.png")} style={styles.fieldIcon} />
           <TextInput
-            style={[styles.inputBoxInput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
+            style={[styles.inputBoxinput, Platform.OS === 'web' && { caretColor: 'transparent' }]}
             placeholder="Confirm Password"
             placeholderTextColor="#A0A0A0"
             value={confirmPassword}
@@ -264,9 +264,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 14,
   },
-  fieldLabel: {
-    width: '100%',
-    marginBottom: 6,
+  fieldLabels: {
+    width: '100%', marginBottom: 6,
   },
   labelText: {
     color: '#0e4f11ff',
@@ -291,7 +290,7 @@ const styles = StyleSheet.create({
     height: 20,
     marginRight: 10,
   },
-  inputBoxInput: {
+  inputBoxinput: {
     flex: 1,
     fontSize: 15,
     color: '#222',

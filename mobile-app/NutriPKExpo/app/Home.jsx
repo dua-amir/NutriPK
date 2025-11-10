@@ -627,11 +627,10 @@ function AnimatedButton({ children, onPress, style }) {
 
 function randomQuote() {
   const quotes = [
-    "Consistency isn’t about perfection; it’s about showing up every day and trusting the process", 
-    "Every bit of progress counts, keep pushing forward, your goals are closer than you think",
-    "Fuel your body with intention, and let every meal be a step toward your stronger self",
-    "Small daily habits shape big, lasting transformations; one mindful choice at a time",
-  ];
+   "Consistency isn’t about being perfect; it’s about showing up daily and trusting your journey.",
+   "Small everyday habits create big, lasting changes—one thoughtful choice at a time.",
+   "Nourish your body with purpose; let each meal move you closer to a stronger version of yourself.",
+   "Every bit of effort matters—keep going, your goals are nearer than you realize."];
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
 
@@ -730,7 +729,6 @@ const styles = StyleSheet.create({
   viewAllText: { color: '#FF6B5C', fontWeight: '700' },
 });
 
-/* Web CSS injected into a <style> tag (keeps file standalone) */
 const webStyle = `
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
   body, #root { font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: #FAFAFA; }
